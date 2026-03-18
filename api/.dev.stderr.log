@@ -1,0 +1,8 @@
+'﻿@echo' is not recognized as an internal or external command,
+operable program or batch file.
+INFO:     Will watch for changes in these directories: ['C:\\Users\\Keith\\Documents\\ROAR\\api']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [34388] using WatchFiles
+INFO:     Started server process [20672]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

@@ -1,0 +1,11 @@
+﻿{
+  "name": "roar-engine",
+  "private": true,
+  "scripts": {
+    "dev:web": "cd web && npm run dev",
+    "dev:api": "cd api && uvicorn main:app --reload --port 8000",
+    "build:web": "cd web && npm run build",
+    "lint:web": "cd web && npm run lint"
+  }
+}
+

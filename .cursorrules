@@ -1,0 +1,43 @@
+﻿# ROAR Engine — Cursor Rules
+
+## Project Identity
+You are building ROAR Engine — a supervised agentic pipeline for retail dispute resolution.
+Stack: Next.js 14 (App Router) · FastAPI (Python) · n8n + LangChain · GPT-4o-mini · PostgreSQL on Railway · Vercel AI SDK · Tailwind CSS.
+
+## Source of Truth
+All specs are in /docs. Read the relevant document before writing any code.
+Documents override assumptions. Always check schema, API shapes, and component names from docs.
+
+## Repository Structure
+roar-engine/
++-- web/     Next.js 14 frontend
++-- api/     FastAPI backend
++-- n8n/     n8n workflow JSON exports
++-- db/      SQL migrations and seed scripts
++-- docs/    All 8 markdown spec documents
+
+## Key Rules
+- Next.js 14 App Router ONLY — no pages/ directory
+- ALL colors via CSS custom properties — never hardcode hex
+- Dark mode via .dark class on html element
+- Polling for live chat: GET /cases/:id/messages every 4000ms
+- FastAPI async throughout — no sync def for DB operations
+- SQLAlchemy async ORM + asyncpg — no Supabase client
+- FastAPI JWT auth (python-jose + passlib) — no external auth service
+- n8n calls FastAPI /internal/sources/* — never queries DB directly
+- chat_messages is append-only — no DELETE or UPDATE
+- REFUND_AUTO_THRESHOLD = 500 (THB)
+- RETURN_WINDOW_DAYS = 7
+- DELIVERY_SLA_BREACH_DAYS = 3
+- INACTIVITY_TIMEOUT_MINUTES = 15
+- MIN_REJECTION_REASON_CHARS = 50
+- CHAT_POLL_INTERVAL_MS = 4000
+
+## Do NOT
+- Use Supabase client or Supabase Auth
+- Use WebSockets for chat
+- Use pages/ directory
+- Hardcode colors or business rule values
+- Allow n8n direct DB access
+- Make chat_messages deletable
+- Implement settings screen or analytics dashboard

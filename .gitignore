@@ -1,0 +1,33 @@
+﻿# Dependencies
+node_modules/
+web/.next/
+web/out/
+
+# Python
+api/venv/
+api/__pycache__/
+api/**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Env files
+.env
+.env.local
+.env.production
+api/.env
+web/.env.local
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.cursor/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
