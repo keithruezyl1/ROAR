@@ -1,0 +1,598 @@
+{
+  "name": "ROAR Workflow - Resolution Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resolution-plan",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d1ed7f2e-7c6a-4c55-8d62-9972c9a4a321",
+      "name": "Webhook - Plan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f0f0c8d-5b2c-4e4a-8c4d-40d2d4d2c0cc",
+      "name": "Fetch Case (Plan)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        480,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $items('Fetch Case (Plan)')[0]?.json ?? {};\n\nconst user_message = {\n  dispute_type: c.dispute_type ?? null,\n  information_bundle: c.information_bundle ?? null,\n  triage_decision: c.triage_decision ?? null,\n  policies_applied: c.triage_decision?.policies_applied || [],\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook - Plan'].json.body.case_id,\n  user_message,\n}];\n"
+      },
+      "id": "9c7f33c6-7c3f-4b62-9e63-02f7b2aa9d3d",
+      "name": "Build Plan Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.user_message) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are ROAR's resolution agent --- Phase 1.\n\nGenerate a resolution plan for a dispute that has passed autonomous triage.\n\nRESOLUTION TYPES: refund | replacement | redelivery | store_credit\n\n- refund: monetary refund for confirmed transaction amount\n\n- replacement: new shipment for affected items\n\n- redelivery: rearrange delivery for delayed shipment\n\n- store_credit: credit if refund not applicable\n\nGUIDELINES:\n\n- steps: 3-5 clear actionable instructions.\n\n- amount: THB value, only for refund type, null otherwise.\n\n- customer_message: professional, empathetic, specific to resolution.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"resolution_type\": \"refund\" | \"replacement\" | \"redelivery\" | \"store_credit\",\n\n\"amount\": number | null,\n\n\"steps\": [\"string\"],\n\n\"customer_message\": \"string\" }"
+            }
+          ]
+        }
+      },
+      "id": "e4d0b8fb-2d3f-4a46-9c3a-0a9f06461a8a",
+      "name": "Basic LLM Chain — Plan",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [
+        960,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 600,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "bf7a3e3a-1d03-4ad8-8fa9-34d5a36e6cc7",
+      "name": "OpenAI Chat Model — Plan",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        960,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "ROAR OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet plan;\ntry {\n  if ($json && typeof $json === 'object' && $json.resolution_type) {\n    plan = $json;\n  } else {\n    const text = coerceToString($json);\n    plan = JSON.parse(text);\n  }\n} catch (e) {\n  plan = null;\n}\n\nconst validTypes = ['refund', 'replacement', 'redelivery', 'store_credit'];\n\nif (!plan || !validTypes.includes(plan.resolution_type)) {\n  plan = {\n    resolution_type: 'refund',\n    amount: null,\n    steps: ['Review case manually.'],\n    customer_message: 'We are reviewing your case. Please wait while a specialist confirms the resolution.',\n  };\n}\n\nif (!Array.isArray(plan.steps)) plan.steps = ['Review case manually.'];\nif (plan.resolution_type === 'refund' && typeof plan.amount !== 'number') {\n  plan.amount = 0;\n}\n\nreturn [{\n  case_id: $items('Build Plan Prompt')[0]?.json.case_id || $node['Webhook - Plan'].json.body.case_id,\n  ...plan,\n}];\n"
+      },
+      "id": "3a3bf8fb-1c53-45a7-9a40-58d5d9647c9b",
+      "name": "Parse Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"resolution_plan\": {\n    \"resolution_type\": $json.resolution_type,\n    \"amount\": $json.amount,\n    \"steps\": $json.steps,\n    \"customer_message\": $json.customer_message\n  },\n  \"status\": \"awaiting_approval\"\n}",
+        "options": {}
+      },
+      "id": "31d9c7de-3b8d-44ac-bc1d-3a1d7d1c2a22",
+      "name": "Save Plan to Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1440,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "approved",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "6e4f4a74-f4a9-4f0c-8e3e-ff7a1c28b1dd",
+      "name": "Webhook - Approved",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4f8f2ef-441f-4c3d-9c3f-1c9cfb343c2d",
+      "name": "Fetch Case + Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        480,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $items('Fetch Case + Plan')[0]?.json ?? {};\n\nconst user_message = {\n  resolution_plan: c.resolution_plan ?? null,\n  information_bundle: c.information_bundle ?? null,\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook - Approved'].json.body.case_id,\n  user_message,\n}];\n"
+      },
+      "id": "d3a26b9c-9e3f-4a4a-9c2b-4b6fbb59d12a",
+      "name": "Build Execute Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.user_message) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are ROAR's resolution agent --- Phase 2. The resolution plan has been approved.\n\nConfirm execution of the plan and report actions taken.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"actions_taken\": [\"string description of each step executed\"],\n\n\"outcome\": \"success\" | \"partial\" | \"failed\",\n\n\"notes\": \"string\" }"
+            }
+          ]
+        }
+      },
+      "id": "8f6a2b5f-6c6f-4e54-82c8-9d2cc39fd2d1",
+      "name": "Basic LLM Chain — Execute",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [
+        960,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0,
+          "maxTokens": 400,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "4dfe6a9b-77f1-4d8e-82ac-4f0bb1c2d0b5",
+      "name": "OpenAI Chat Model — Execute",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        960,
+        600
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "ROAR OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $items('Fetch Case + Plan')[0].json.dispute_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "refund"
+            },
+            {
+              "value2": "delivery",
+              "output": 1
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extraOutput"
+        }
+      },
+      "id": "f7c72d9b-3c1a-45c8-8a6c-2e90a9b6c4e8",
+      "name": "Route by Dispute Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/refund_requests",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_id\": $items('Fetch Case + Plan')[0].json.id,\n  \"order_id\": $items('Fetch Case + Plan')[0].json.order_id,\n  \"amount\": $items('Fetch Case + Plan')[0].json.resolution_plan?.amount ?? null,\n  \"reason\": $items('Fetch Case + Plan')[0].json.resolution_plan?.steps?.[0] ?? \"Approved resolution plan\",\n  \"status\": \"pending\"\n}",
+        "options": {}
+      },
+      "id": "3de61b7b-5f68-4f91-8a41-7e0a9b2a3f44",
+      "name": "Create Refund Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/return_requests",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_id\": $items('Fetch Case + Plan')[0].json.id,\n  \"order_id\": $items('Fetch Case + Plan')[0].json.order_id,\n  \"item_ids\": ($items('Fetch Case + Plan')[0].json.information_bundle?.order_items || []).map(i => i.item_id),\n  \"return_reason\": $items('Fetch Case + Plan')[0].json.resolution_plan?.steps?.[0] ?? \"Approved resolution plan\",\n  \"status\": \"pending\"\n}",
+        "options": {}
+      },
+      "id": "d3c7f3f4-4d98-48a7-bc88-8a67e9bb22c1",
+      "name": "Create Return Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1440,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$items('Fetch Case + Plan')[0].json.id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"resolved\",\n  \"resolution_actions\": $json.actions_taken,\n  \"resolution_outcome\": $json.outcome,\n  \"resolution_notes\": $json.notes\n}",
+        "options": {}
+      },
+      "id": "22e2b4db-1e55-4a4f-8d52-5bbf3c7dd9f0",
+      "name": "Update Case - Resolved",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1680,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/cases/{{$items('Fetch Case + Plan')[0].json.id}}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": $items('Fetch Case + Plan')[0].json.resolution_plan?.customer_message ?? \"Your case has been resolved.\",\n  \"sender_type\": \"ai\"\n}",
+        "options": {}
+      },
+      "id": "5d95a2c1-3d5f-43f8-8a24-5a4d5b2c2d72",
+      "name": "Post Resolution Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1920,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Plan": {
+      "main": [
+        [
+          {
+            "node": "Fetch Case (Plan)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Case (Plan)": {
+      "main": [
+        [
+          {
+            "node": "Build Plan Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Plan Prompt": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain — Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain — Plan": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "OpenAI Chat Model — Plan",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ],
+      "main": [
+        [
+          {
+            "node": "Parse Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Plan": {
+      "main": [
+        [
+          {
+            "node": "Save Plan to Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Approved": {
+      "main": [
+        [
+          {
+            "node": "Fetch Case + Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Case + Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Execute Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Execute Prompt": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain — Execute",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain — Execute": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "OpenAI Chat Model — Execute",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ],
+      "main": [
+        [
+          {
+            "node": "Route by Dispute Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Dispute Type": {
+      "main": [
+        [
+          {
+            "node": "Create Refund Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Return Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Case - Resolved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Refund Record": {
+      "main": [
+        [
+          {
+            "node": "Update Case - Resolved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Return Record": {
+      "main": [
+        [
+          {
+            "node": "Update Case - Resolved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Case - Resolved": {
+      "main": [
+        [
+          {
+            "node": "Post Resolution Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "a1d9f7b0-2b4a-46b0-8a06-0d0a6d5dfc3a",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

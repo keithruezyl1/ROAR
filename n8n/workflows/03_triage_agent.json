@@ -1,0 +1,439 @@
+{
+  "name": "ROAR Workflow - Triage Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "triage-complete",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "c8d4a6f2-0b7b-4d6b-bdbd-820b2f3c6e21",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a2a0b66e-7c8a-4c2e-9a62-5f8a1bdf0438",
+      "name": "Fetch Full Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/policies?category=in.(store,payment,return,delivery,sla)&select=slug,title,content",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c6f5cf69-d3ac-45be-8f89-4a73a7f2a6d9",
+      "name": "Fetch Policies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\nconst policies = $items('Fetch Policies')[0]?.json ?? [];\n\nconst dispute_type = caseData.dispute_type || $node['Webhook Trigger'].json.body.dispute_type;\n\nconst current_date = new Date().toISOString().split('T')[0];\n\nconst refundRules = [\n  'Payment confirmed: sim_transactions.status = \\'confirmed\\'',\n  'Order fulfilled or returned: sim_orders.status IN (\\'fulfilled\\',\\'returned\\')',\n  'Amount below threshold: sim_transactions.amount <= 500 THB',\n  'No prior dispute: sim_refund_records empty for this order_id',\n  'Within return window: order created_at within 30 days of today',\n];\n\nconst deliveryRules = [\n  'Delay (not lost): sim_shipments.status = \\'delayed\\' NOT \\'lost\\'/\\'failed\\'',\n  'Item shipped: sim_shipments.shipped_at IS NOT NULL',\n  'No duplicate complaint: No prior open case for same order_id',\n  'Within SLA window: sim_shipments.estimated_delivery >= today',\n];\n\nconst triage_rules = dispute_type === 'refund' ? refundRules : deliveryRules;\n\nconst user_message = {\n  information_bundle: caseData.information_bundle ?? null,\n  dispute_type,\n  triage_rules,\n  policy_context: policies,\n  current_date,\n};\n\nreturn [{\n  case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n  user_message,\n}];\n"
+      },
+      "id": "e8b6d1bd-7b72-4ad8-8a67-0bb45a47a8f9",
+      "name": "Build Triage Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.user_message) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are ROAR's triage agent. Apply rule-based retail policies to an information bundle\n\nand determine whether a dispute can be resolved autonomously or must be escalated.\n\nYou will receive: information_bundle, triage_rules, policy_context, current_date.\n\nEVALUATION RULES:\n\n- Evaluate every rule in triage_rules. Return pass or fail for each.\n\n- ALL rules pass → routing_decision = autonomous\n\n- ANY rule fails → routing_decision = escalation\n\n- Any data source null or empty → rule failure → routing_decision = escalation\n\n- Reference specific data values in your evidence field.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"routing_decision\": \"autonomous\" | \"escalation\",\n\n\"rules_evaluated\": [ { \"rule\": \"string\", \"passed\": bool, \"evidence\": \"string\" } ],\n\n\"justification\": \"paragraph\",\n\n\"policies_applied\": [\"slug\"],\n\n\"slas_applied\": [\"slug\"] }"
+            }
+          ]
+        }
+      },
+      "id": "5d2c1f0e-77b3-4b8b-9c5f-0dfbfa02f7d9",
+      "name": "Basic LLM Chain — Triage",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0,
+          "maxTokens": 800,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "1b8a0c2e-6f55-4f0d-a5c4-b0b0bf67b0f0",
+      "name": "OpenAI Chat Model — Triage",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        420
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "ROAR OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet raw = $json;\nlet decision;\n\ntry {\n  if (raw && typeof raw === 'object' && raw.routing_decision) {\n    decision = raw;\n  } else {\n    const text = coerceToString(raw);\n    decision = typeof text === 'string' && text.trim().length ? JSON.parse(text) : null;\n  }\n} catch (e) {\n  decision = null;\n}\n\nconst ok = decision && (decision.routing_decision === 'autonomous' || decision.routing_decision === 'escalation');\n\nconst safeDecision = ok\n  ? decision\n  : {\n      routing_decision: 'escalation',\n      rules_evaluated: [],\n      justification: 'Triage error — manual review required.',\n      policies_applied: [],\n      slas_applied: [],\n    };\n\nreturn [{\n  case_id: $items('Build Triage Prompt')[0]?.json.case_id || $node['Webhook Trigger'].json.body.case_id,\n  ...safeDecision,\n}];\n"
+      },
+      "id": "d8c1c6e6-3c4d-4a9e-9d39-ef31fb4c3415",
+      "name": "Parse + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.routing_decision }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "autonomous"
+            },
+            {
+              "value2": "escalation",
+              "output": 1
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extraOutput"
+        }
+      },
+      "id": "bb8c6be8-bf05-49dc-9b7f-9e43cbd0e0a8",
+      "name": "Route on Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"awaiting_approval\",\n  \"resolution_path\": \"autonomous\",\n  \"triage_decision\": {\n    \"routing_decision\": $json.routing_decision,\n    \"rules_evaluated\": $json.rules_evaluated,\n    \"justification\": $json.justification,\n    \"policies_applied\": $json.policies_applied,\n    \"slas_applied\": $json.slas_applied\n  }\n}",
+        "options": {}
+      },
+      "id": "c1c2579b-28d6-42cb-9a23-3d0f6c1d2d1f",
+      "name": "Update - Awaiting Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1920,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/webhooks/resolution-plan",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_id\": $json.case_id\n}",
+        "options": {}
+      },
+      "id": "1f33f5a3-b1a6-4a44-b0c1-8e2c76c8f3fd",
+      "name": "Trigger Resolution Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"escalated_human_required\",\n  \"resolution_path\": \"escalation\",\n  \"triage_decision\": {\n    \"routing_decision\": $json.routing_decision,\n    \"rules_evaluated\": $json.rules_evaluated,\n    \"justification\": $json.justification,\n    \"policies_applied\": $json.policies_applied,\n    \"slas_applied\": $json.slas_applied\n  }\n}",
+        "options": {}
+      },
+      "id": "3d9c1c43-84d4-4e23-a271-3f0f1a1e7f0c",
+      "name": "Update - Escalated",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1920,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/webhooks/triage-escalation",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_id\": $json.case_id\n}",
+        "options": {}
+      },
+      "id": "4b88a8c1-5223-4c0b-a30f-6f9c1dcb6a2b",
+      "name": "Trigger Summarization",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2160,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Full Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Full Case": {
+      "main": [
+        [
+          {
+            "node": "Fetch Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Policies": {
+      "main": [
+        [
+          {
+            "node": "Build Triage Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Triage Prompt": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain — Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain — Triage": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "OpenAI Chat Model — Triage",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ],
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Route on Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route on Decision": {
+      "main": [
+        [
+          {
+            "node": "Update - Awaiting Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update - Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update - Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update - Awaiting Approval": {
+      "main": [
+        [
+          {
+            "node": "Trigger Resolution Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update - Escalated": {
+      "main": [
+        [
+          {
+            "node": "Trigger Summarization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "b28fe1ee-7ac4-4c9e-8a02-5e94873d7a12",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

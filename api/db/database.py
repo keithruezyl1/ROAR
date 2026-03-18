@@ -1,7 +1,7 @@
 ﻿"""SQLAlchemy async database engine and session factory."""
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
-from config import settings
+from api.config import settings
 
 engine = create_async_engine(
     settings.database_url,
@@ -30,4 +30,5 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
+
 

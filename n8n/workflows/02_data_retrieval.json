@@ -1,0 +1,448 @@
+{
+  "name": "ROAR Workflow - Data Retrieval Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bundle-ready",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "5d5c6e5a-3d4b-4d4a-9f4c-3b9d5d9c4b1a",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.dispute_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "refund"
+            },
+            {
+              "value2": "delivery",
+              "output": 1
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extraOutput"
+        }
+      },
+      "id": "cfb3b6fd-2f9d-4a77-9e55-0c0b1b7de310",
+      "name": "Route by Dispute Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/internal/sources/orders?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8bd2a0ce-79d9-4b5d-8ea0-0f7c1f2d9ac1",
+      "name": "Query OMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $node['Webhook Trigger'].json.body.dispute_type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "refund"
+            },
+            {
+              "value2": "delivery",
+              "output": 1
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extraOutput"
+        }
+      },
+      "id": "3d9a54f8-3d7f-4d7c-9cf5-74cbb8d5e2a8",
+      "name": "Route after OMS",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        960,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/internal/sources/transactions?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1566e7a-4b1f-40ee-b4cf-56b8a47d882b",
+      "name": "Query Payment - Txn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/internal/sources/refunds?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8d4c6e29-5ff4-4cf4-92a0-0f7e4a9f3b3a",
+      "name": "Query Payment - Refunds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1440,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/internal/sources/shipments?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e1f68f1-1a7a-4d40-a2b8-8b64b4f6a3b2",
+      "name": "Query Logistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/internal/sources/inventory?item_ids={{ ($items('Query OMS')[0].json.order_items || []).map(i => i.item_id).join(',') }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a0b7e3d1-6d19-4e7f-9a15-37c2c98d1f77",
+      "name": "Query Inventory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1440,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const oms = $items('Query OMS')[0]?.json ?? {};\nconst paymentTxnItems = $items('Query Payment - Txn');\nconst refundsItems = $items('Query Payment - Refunds');\nconst logisticsItems = $items('Query Logistics');\nconst inventoryItems = $items('Query Inventory');\n\nconst transaction = paymentTxnItems.length ? paymentTxnItems[0].json.transaction : null;\nconst refund_records = refundsItems.length ? refundsItems[0].json.refund_records : null;\nconst shipment = logisticsItems.length ? logisticsItems[0].json.shipment : null;\nconst tracking_events = logisticsItems.length ? logisticsItems[0].json.tracking_events : null;\nconst stock_records = inventoryItems.length ? inventoryItems[0].json.stock_records : null;\n\nconst input = $node['Webhook Trigger'].json.body || $json.body || $json;\n\nconst bundle = {\n  order: oms.order ?? null,\n  order_items: oms.order_items ?? [],\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n  dispute_type: input.dispute_type,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [{\n  case_id: input.case_id,\n  dispute_type: input.dispute_type,\n  information_bundle: bundle,\n}];\n"
+      },
+      "id": "9b7d0c3c-7f1c-4c0e-9f36-0d98b67a3fd4",
+      "name": "Assemble Bundle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"information_bundle\": $json.information_bundle\n}",
+        "options": {}
+      },
+      "id": "d3d1e86e-31fe-4b8f-9d63-1c3b7c2a8caa",
+      "name": "Update Case - Bundle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/webhooks/triage-complete",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"case_id\": $json.case_id,\n  \"dispute_type\": $json.dispute_type\n}",
+        "options": {}
+      },
+      "id": "63c3b6b3-bd0a-4c0d-8b3a-3ce0b6cc2a31",
+      "name": "Trigger Triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1920,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route by Dispute Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Dispute Type": {
+      "main": [
+        [
+          {
+            "node": "Query OMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query OMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query OMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query OMS": {
+      "main": [
+        [
+          {
+            "node": "Route after OMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route after OMS": {
+      "main": [
+        [
+          {
+            "node": "Query Payment - Txn",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Logistics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assemble Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Payment - Txn": {
+      "main": [
+        [
+          {
+            "node": "Query Payment - Refunds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Payment - Refunds": {
+      "main": [
+        [
+          {
+            "node": "Assemble Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Logistics": {
+      "main": [
+        [
+          {
+            "node": "Query Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Inventory": {
+      "main": [
+        [
+          {
+            "node": "Assemble Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Bundle": {
+      "main": [
+        [
+          {
+            "node": "Update Case - Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Case - Bundle": {
+      "main": [
+        [
+          {
+            "node": "Trigger Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "e2e4bb7f-8b7f-4c3d-a2e6-34d0e6d5f5f9",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}

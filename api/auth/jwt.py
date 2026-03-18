@@ -1,7 +1,7 @@
 ﻿"""JWT creation and verification using python-jose."""
 from datetime import datetime, timedelta, timezone
 from jose import jwt
-from config import settings
+from api.config import settings
 
 
 def create_access_token(data: dict) -> str:
@@ -15,4 +15,5 @@ def create_access_token(data: dict) -> str:
 def verify_token(token: str) -> dict:
     """Verify and decode a JWT token. Raises JWTError if invalid."""
     return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+
 

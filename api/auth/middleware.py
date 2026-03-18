@@ -2,7 +2,7 @@
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
-from auth.jwt import verify_token
+from api.auth.jwt import verify_token
 
 bearer_scheme = HTTPBearer()
 
@@ -40,4 +40,5 @@ async def require_agent(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user.get("role") not in ("approver", "escalation"):
         raise HTTPException(status_code=403, detail="Agent role required")
     return current_user
+
 

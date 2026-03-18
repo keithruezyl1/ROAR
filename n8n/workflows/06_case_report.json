@@ -1,0 +1,223 @@
+{
+  "name": "ROAR Workflow - Case Report Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "conversation-closed",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "f3a4b5c6-d7e8-4f9a-b0c1-d2e3f4a5b6c7",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Fetch Full Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 240]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/cases/{{$json.id}}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "Fetch Chat Transcript",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\nconst rawMessages = $items('Fetch Chat Transcript')[0]?.json ?? {};\nconst messages = Array.isArray(rawMessages) ? rawMessages : (rawMessages.messages || []);\n\nconst trimmedTranscript = messages.slice(-40);\n\nconst webhookBody = $node['Webhook Trigger']?.json?.body ?? {};\n\nconst user_message = {\n  case: c,\n  transcript: trimmedTranscript,\n  closed_by: webhookBody.closed_by ?? null,\n  close_reason: webhookBody.close_reason ?? null,\n};\n\nreturn [{\n  case_id: c.id || webhookBody.case_id,\n  user_message,\n}];\n"
+      },
+      "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Build Report Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.user_message) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are ROAR's case report agent. Compile a permanent audit record for a closed case.\n\nYou will receive the full case object and conversation transcript.\n\nGUIDELINES:\n\n- Be thorough and factual --- this is a permanent audit record.\n\n- outcome_summary: 2-3 sentences on what happened and how it resolved.\n\n- Extract actual values from data --- do not paraphrase or generalize.\n\n- Set inapplicable fields to null.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"intent_classification\": \"string\",\n\n\"data_sources_queried\": [\"string\"],\n\n\"policies_applied\": [\"slug\"],\n\n\"slas_applied\": [\"slug\"],\n\n\"triage_decision\": \"autonomous\" | \"escalation\",\n\n\"resolution_path\": \"string\",\n\n\"approval_outcome\": \"approved\" | \"rejected\" | null,\n\n\"rejection_reason\": \"string | null\",\n\n\"resolution_actions\": [\"string\"] | null,\n\n\"outcome_summary\": \"string\",\n\n\"close_reason\": \"string\" }"
+            }
+          ]
+        }
+      },
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "name": "Basic LLM Chain — Report",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [1200, 240]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0,
+          "maxTokens": 1000,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+      "name": "OpenAI Chat Model — Report",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1200, 420],
+      "credentials": {
+        "openAiApi": {
+          "name": "ROAR OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\nconst webhookBody = $node['Webhook Trigger']?.json?.body ?? {};\n\nconst coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet report;\ntry {\n  if ($json && typeof $json === 'object' && $json.intent_classification !== undefined) {\n    report = $json;\n  } else {\n    const text = coerceToString($json);\n    report = JSON.parse(text);\n  }\n} catch (e) {\n  report = null;\n}\n\nconst hasCoreFields = report &&\n  report.intent_classification &&\n  Array.isArray(report.data_sources_queried) &&\n  report.outcome_summary;\n\nif (!hasCoreFields) {\n  report = {\n    intent_classification: c.triage_decision?.intent || 'unknown',\n    data_sources_queried: ['internal'],\n    policies_applied: c.triage_decision?.policies_applied || [],\n    slas_applied: c.triage_decision?.slas_applied || [],\n    triage_decision: c.triage_decision?.routing_decision || 'escalation',\n    resolution_path: c.resolution_path || 'unknown',\n    approval_outcome: c.approval_outcome || null,\n    rejection_reason: c.rejection_reason || null,\n    resolution_actions: c.resolution_actions || [],\n    outcome_summary: `Case ${c.id} closed with status ${c.status}.`,\n    close_reason: webhookBody.close_reason || c.close_reason || 'unspecified',\n  };\n}\n\nreturn [{\n  case_id: c.id || webhookBody.case_id,\n  closed_by: webhookBody.closed_by || null,\n  close_reason: webhookBody.close_reason || null,\n  report,\n}];\n"
+      },
+      "id": "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
+      "name": "Parse + Validate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}/report",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"report\": $json.report,\n  \"generated_at\": new Date().toISOString()\n}",
+        "onError": "continueRegularOutput",
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "name": "Write Case Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1680, 240]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"closed\",\n  \"closed_by\": $json.closed_by,\n  \"close_reason\": $json.close_reason,\n  \"closed_at\": new Date().toISOString()\n}",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
+      "name": "Close Case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1920, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/cases/{{$json.case_id}}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"This conversation has been closed. A full case summary has been generated for your records. Thank you.\",\n  \"sender_type\": \"system\"\n}",
+        "options": {}
+      },
+      "id": "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f",
+      "name": "Post Closure Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2160, 240]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Fetch Full Case", "type": "main", "index": 0 }]]
+    },
+    "Fetch Full Case": {
+      "main": [[{ "node": "Fetch Chat Transcript", "type": "main", "index": 0 }]]
+    },
+    "Fetch Chat Transcript": {
+      "main": [[{ "node": "Build Report Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Report Prompt": {
+      "main": [[{ "node": "Basic LLM Chain — Report", "type": "main", "index": 0 }]]
+    },
+    "Basic LLM Chain — Report": {
+      "ai_languageModel": [[{ "node": "OpenAI Chat Model — Report", "type": "ai_languageModel", "index": 0 }]],
+      "main": [[{ "node": "Parse + Validate Report", "type": "main", "index": 0 }]]
+    },
+    "Parse + Validate Report": {
+      "main": [[{ "node": "Write Case Report", "type": "main", "index": 0 }]]
+    },
+    "Write Case Report": {
+      "main": [[{ "node": "Close Case", "type": "main", "index": 0 }]]
+    },
+    "Close Case": {
+      "main": [[{ "node": "Post Closure Message", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {}
+}
