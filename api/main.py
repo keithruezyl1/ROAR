@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import auth, cases, internal, messages, policies, reports, webhooks
+from api.routers import auth, cases, customers, internal, messages, policies, reports, resolution_records, webhooks
 from api.services import timeout_service
 
 logging.basicConfig(level=logging.INFO)
@@ -61,8 +61,10 @@ async def health():
 # Register all routers (each router already defines its own prefix and tags)
 app.include_router(auth.router)
 app.include_router(cases.router)
+app.include_router(customers.router)
 app.include_router(messages.router)
 app.include_router(reports.router)
+app.include_router(resolution_records.router)
 app.include_router(webhooks.router)
 app.include_router(policies.router)
 app.include_router(internal.router)

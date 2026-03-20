@@ -1,0 +1,574 @@
+[
+  {
+    "updatedAt": "2026-03-19T02:41:37.146Z",
+    "createdAt": "2026-03-18T00:58:31.253Z",
+    "id": "IFYMhz16s9NvAInS",
+    "name": "#1 ROAR Workflow — Intake Agent",
+    "description": "workflow for ROAR Engine",
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "case-created",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "6b7e603f-4f99-43a3-85dd-538d686fbaa7",
+        "name": "Webhook — case-created",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          592,
+          176
+        ],
+        "webhookId": "48e22b06-5c96-49bf-a6b7-9abdd721eb09"
+      },
+      {
+        "parameters": {
+          "url": "=http://192.168.1.52:8000/cases/{{ $json.body.case_id }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "d64638a3-e485-48c8-9903-3adedb685c31",
+        "name": "Fetch Case",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          832,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=http://192.168.1.52:8000/cases/{{ $json.id }}/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "5d2223ff-ac02-40e2-af45-3e4b9a6c3134",
+        "name": "Fetch Transcript",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1072,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const caseData = $item(0, 'Fetch Case').$json;\nconst transcript = ($item(0, 'Fetch Transcript').$json.messages || []).slice(-40);\n\nconst priorQuestions = transcript.filter(\n  (m) => m.sender_type === 'agent' && m.metadata?.role === 'intake_question'\n).length;\n\nconst userPayload = {\n  case: caseData,\n  transcript,\n  max_followup_questions: 3,\n};\n\nconst messages = [\n  {\n    role: 'user',\n    content: JSON.stringify(userPayload),\n  },\n];\n\nreturn [{ messages, priorQuestions }];\n"
+        },
+        "id": "28f4da7a-980b-4c02-882a-8d90c333f237",
+        "name": "Build Intake Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1312,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "prompt": "=={{ $json.messages[0].content }}",
+          "messages": {
+            "messageValues": [
+              {
+                "message": "You are ROAR's intake agent for a retail customer dispute system.\n\nYour job is to gather sufficient context from the customer about their dispute,\nthen classify the intent once you have enough information.\n\nRULES:\n\n- Ask a maximum of 3 follow-up questions total across the entire conversation.\n\n- Only ask questions from the approved set for the given dispute_type.\n\n- Once you have sufficient context (or after 3 questions), classify the intent.\n\n- Classify as valid_dispute if the issue is a legitimate refund or delivery problem.\n\n- Classify as insufficient_context only if the customer provided no usable information.\n\n- Be concise and professional.\n\nAPPROVED QUESTIONS --- refund disputes:\n\n1. Have you received any part of your order?\n\n2. What payment method did you use for this order?\n\n3. When was the order placed?\n\nAPPROVED QUESTIONS --- delivery disputes:\n\n1. What is the current tracking status shown to you?\n\n2. Has the estimated delivery date passed?\n\n3. Have you contacted the carrier about this issue?\n\nRESPONSE FORMAT --- valid JSON only, no prose, no markdown:\n\n{ \"action\": \"ask_question\" | \"classify_intent\",\n\n\"question\": \"string (only if action=ask_question)\",\n\n\"intent\": \"valid_dispute\" | \"insufficient_context\" (only if classifying),\n\n\"intent_summary\": \"one sentence summary (only if classifying)\" }"
+              }
+            ]
+          }
+        },
+        "id": "9580f2a7-207a-43ab-9c20-a08c34881ab0",
+        "name": "Basic LLM Chain — Intake",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1,
+        "position": [
+          1552,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "model": "gpt-4o-mini",
+          "options": {
+            "maxTokens": 400,
+            "responseFormat": "json_object",
+            "temperature": 0.2
+          }
+        },
+        "id": "1185cab0-40a9-4c64-9416-dc6ef98faaed",
+        "name": "OpenAI Chat Model — Intake",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1,
+        "position": [
+          1552,
+          416
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "NByBKEvh1nY13B5s",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst fallbackQuestion = 'Could you share a bit more detail about what happened with your order?';\n\nlet raw = $json;\nlet data;\n\nif (raw && typeof raw === 'object' && (raw.action || raw.question || raw.intent)) {\n  data = raw;\n} else {\n  const text = coerceToString(raw);\n  try {\n    data = JSON.parse(text);\n  } catch (e) {\n    data = { action: 'ask_question', question: fallbackQuestion };\n  }\n}\n\n// Normalize possible intent labels\nlet intent = (data.intent || '').toString().trim();\nif (intent === 'insufficient_info') intent = 'insufficient_context';\n\nlet next_action = 'error';\nlet question = data.question || null;\n\nif (data.action === 'ask_question') {\n  next_action = 'ask_question';\n  question = question || fallbackQuestion;\n} else if (data.action === 'classify_intent') {\n  if (intent === 'valid_dispute') {\n    next_action = 'classify_intent';\n  } else if (intent === 'insufficient_context') {\n    // Keep intake interactive: ask follow-up question\n    next_action = 'ask_question';\n    question = question || fallbackQuestion;\n  } else {\n    next_action = 'ask_question';\n    question = question || fallbackQuestion;\n  }\n} else {\n  next_action = 'ask_question';\n  question = fallbackQuestion;\n}\n\nreturn [{\n  next_action,\n  question,\n  intent: intent || null,\n  intent_summary: data.intent_summary || null,\n}];"
+        },
+        "id": "07d19538-b66e-448c-8d15-a6a5f947d914",
+        "name": "Parse Intake JSON",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1840,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "dataType": "string",
+          "value1": "={{ $json.next_action }}",
+          "rules": {
+            "rules": [
+              {
+                "value2": "ask_question"
+              },
+              {
+                "value2": "classify_intent",
+                "output": 1
+              }
+            ]
+          }
+        },
+        "id": "3a5391a2-163c-4315-b119-323eeb540fea",
+        "name": "Route by next_action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 1,
+        "position": [
+          2032,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "content",
+                "value": "={{$json.question || \"Could you share a bit more detail about what happened with your order?\"}}"
+              },
+              {
+                "name": "sender_type",
+                "value": "ai"
+              },
+              {
+                "name": "metadata",
+                "value": "=={{ {\"role\":\"intake_question\"} }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "99281ac2-a2f9-43cf-983a-fc08fb554160",
+        "name": "Post Intake Question",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2272,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "status",
+                "value": "pending_triage"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "25533fc3-bb57-4986-b8d1-52c3f60c9c3e",
+        "name": "Update Case — intent confirmed",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2272,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=http://localhost:5678/webhook/bundle-ready",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-Webhook-Secret",
+                "value": "=dev-webhook-secret-change-in-production"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"case_id\": $node['Webhook — case-created'].json.body.case_id,\n  \"dispute_type\": $node['Webhook — case-created'].json.body.dispute_type,\n  \"order_id\": $node['Webhook — case-created'].json.body.order_id\n}",
+          "options": {}
+        },
+        "id": "c8228933-24ca-4b18-9db0-87cbabd330a9",
+        "name": "Trigger WF2 — bundle-ready",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2512,
+          48
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"content\": \"Unable to gather enough information. Please contact support.\",\n  \"sender_type\": \"ai\"\n}",
+          "options": {}
+        },
+        "id": "aeecb305-10ce-4911-822e-85d1cb1b891f",
+        "name": "Post insufficient-context message",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2272,
+          368
+        ]
+      },
+      {
+        "parameters": {
+          "keepOnlySet": true,
+          "values": {
+            "boolean": [
+              {
+                "name": "ok",
+                "value": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "0b6cf0a3-8a67-4875-a2ed-82ae2a8a6b3b",
+        "name": "Webhook response",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 2,
+        "position": [
+          2752,
+          176
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=http://192.168.1.52:8000/cases/{{ $node[\"Webhook — case-created\"].json.body.case_id }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"status\": \"escalated_human_required\"\n}",
+          "options": {}
+        },
+        "id": "6a584ba5-fbce-4074-a978-ce1e868c74d3",
+        "name": "Escalate case — insufficient-context",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          2512,
+          288
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook — case-created": {
+        "main": [
+          [
+            {
+              "node": "Fetch Case",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Case": {
+        "main": [
+          [
+            {
+              "node": "Fetch Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Transcript": {
+        "main": [
+          [
+            {
+              "node": "Build Intake Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Intake Prompt": {
+        "main": [
+          [
+            {
+              "node": "Basic LLM Chain — Intake",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Basic LLM Chain — Intake": {
+        "main": [
+          [
+            {
+              "node": "Parse Intake JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Intake JSON": {
+        "main": [
+          [
+            {
+              "node": "Route by next_action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route by next_action": {
+        "main": [
+          [
+            {
+              "node": "Post Intake Question",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update Case — intent confirmed",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Post insufficient-context message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Webhook response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post Intake Question": {
+        "main": [
+          [
+            {
+              "node": "Webhook response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Case — intent confirmed": {
+        "main": [
+          [
+            {
+              "node": "Trigger WF2 — bundle-ready",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger WF2 — bundle-ready": {
+        "main": [
+          [
+            {
+              "node": "Webhook response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post insufficient-context message": {
+        "main": [
+          [
+            {
+              "node": "Escalate case — insufficient-context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model — Intake": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Basic LLM Chain — Intake",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Escalate case — insufficient-context": {
+        "main": [
+          [
+            {
+              "node": "Webhook response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "timeSavedMode": "fixed",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "2a5f096d-7fc6-417d-b150-35b89b5291cc",
+    "activeVersionId": "2a5f096d-7fc6-417d-b150-35b89b5291cc",
+    "versionCounter": 161,
+    "triggerCount": 1,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-03-18T00:58:31.258Z",
+        "createdAt": "2026-03-18T00:58:31.258Z",
+        "role": "workflow:owner",
+        "workflowId": "IFYMhz16s9NvAInS",
+        "projectId": "u9EDii98eDPZ0DFz",
+        "project": {
+          "updatedAt": "2026-03-17T15:26:25.333Z",
+          "createdAt": "2026-03-17T15:25:33.310Z",
+          "id": "u9EDii98eDPZ0DFz",
+          "name": "KEITH RUEZYL TAGARAO <keith_tagarao01@yahoo.com.ph>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "creatorId": "959c9550-c95c-40a0-b6c0-1874e8f51944"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Version 2a5f096d",
+      "description": "updated JSON for PIQ and UCIC"
+    }
+  }
+]

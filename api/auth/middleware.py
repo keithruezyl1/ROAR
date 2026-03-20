@@ -42,3 +42,24 @@ async def require_agent(current_user: dict = Depends(get_current_user)) -> dict:
     return current_user
 
 
+async def require_customer(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency — requires customer role."""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    return current_user
+
+
+bearer_scheme_optional = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme_optional),
+) -> dict | None:
+    """Optional JWT — returns None if no token provided."""
+    if not credentials:
+        return None
+    try:
+        payload = verify_token(credentials.credentials)
+        return payload
+    except JWTError:
+        return None

@@ -1,4 +1,4 @@
-﻿"""Chat messages: append-only."""
+"""Chat messages: append-only."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth.middleware import get_current_user
 from api.db.database import get_db
 from api.db.models import Case, ChatMessage
+from api.services.n8n import trigger_workflow
 
 router = APIRouter(prefix="/cases", tags=["messages"])
 
@@ -31,7 +32,7 @@ async def create_message(
     db: AsyncSession = Depends(get_db),
     creds: HTTPAuthorizationCredentials | None = Security(bearer_optional),
 ):
-    if payload.sender_type not in ("customer", "agent"):
+    if payload.sender_type not in ("customer", "ai", "agent", "system"):
         raise HTTPException(status_code=422, detail="Invalid sender_type")
 
     current_user: dict | None = None
@@ -65,6 +66,25 @@ async def create_message(
 
     await db.commit()
     await db.refresh(msg)
+
+    # Frontend never calls n8n directly. The canonical architecture is:
+    # Frontend -> FastAPI -> n8n (webhooks). This bridge auto-triggers WF1 only
+    # while the case remains in pending_triage; once the case moves to another
+    # status, customer messages will no longer retrigger WF1.
+    if payload.sender_type == "customer" and case.status == "pending_triage":
+        await trigger_workflow(
+            "case-created",
+            {
+                "case_id": str(case.id),
+                "dispute_type": case.dispute_type,
+                "order_id": case.order_id,
+                # For WF1 context initialization, always use the original intake message
+                # stored on the case record (WF1 fetches full transcript itself).
+                "intake_message": case.intake_message,
+                "customer_name": case.customer_name,
+                "customer_email": case.customer_email,
+            },
+        )
 
     return {
         "id": str(msg.id),

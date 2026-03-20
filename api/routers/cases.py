@@ -6,13 +6,13 @@ from datetime import datetime, timezone
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Security, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.middleware import get_current_user, require_agent, require_approver
+from api.auth.middleware import get_current_user, get_current_user_optional, require_agent, require_approver, require_customer
 from api.db.database import get_db
 from api.db.models import Case, Policy
 from api.services.cases import generate_reference_number, validate_status_transition
@@ -80,7 +80,11 @@ def _case_to_dict(case: Case) -> dict[str, Any]:
 
 
 @router.post("", status_code=201, response_model=CaseCreateResponse)
-async def create_case(payload: CaseCreateRequest, db: AsyncSession = Depends(get_db)):
+async def create_case(
+    payload: CaseCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    creds: HTTPAuthorizationCredentials | None = Security(bearer_optional),
+):
     if payload.dispute_type not in ("refund", "delivery"):
         raise HTTPException(status_code=422, detail="Invalid dispute_type")
 
@@ -92,6 +96,17 @@ async def create_case(payload: CaseCreateRequest, db: AsyncSession = Depends(get
 
     ref = await generate_reference_number(db)
 
+    # Determine customer_user_id from JWT if present
+    customer_uid = None
+    if creds:
+        try:
+            from api.auth.jwt import verify_token
+            token_payload = verify_token(creds.credentials)
+            if token_payload.get("role") == "customer":
+                customer_uid = token_payload.get("sub")
+        except Exception:
+            pass
+
     case = Case(
         reference_number=ref,
         order_id=payload.order_id,
@@ -100,11 +115,14 @@ async def create_case(payload: CaseCreateRequest, db: AsyncSession = Depends(get
         customer_email=str(payload.customer_email),
         intake_message=payload.intake_message,
         status="pending_triage",
+        customer_user_id=customer_uid,
     )
     db.add(case)
     await db.commit()
     await db.refresh(case)
 
+    # Frontend never calls n8n directly. The canonical architecture is:
+    # Frontend -> FastAPI -> n8n (webhooks).
     await trigger_workflow(
         "/webhooks/case-created",
         {
@@ -127,7 +145,6 @@ async def get_case(
     case_id: str,
     db: AsyncSession = Depends(get_db),
     creds: HTTPAuthorizationCredentials | None = Security(bearer_optional),
-    authorization: str | None = Header(default=None),
 ):
     result = await db.execute(select(Case).where(Case.id == case_id))
     case = result.scalar_one_or_none()
@@ -137,8 +154,73 @@ async def get_case(
     if creds is None:
         return {"id": str(case.id), "reference_number": case.reference_number, "status": case.status}
 
-    _ = await get_current_user(credentials=creds)  # validate token
+    current_user = await get_current_user(credentials=creds)
+    role = current_user.get("role")
+    if role == "customer":
+        if case.customer_email != current_user.get("email"):
+            raise HTTPException(status_code=403, detail="You do not have access to this case")
+    elif role not in ("approver", "escalation"):
+        raise HTTPException(status_code=403, detail="Unauthorized")
     return _case_to_dict(case)
+
+
+
+
+@router.get("/{case_id}/order-details")
+async def get_case_order_details(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_customer),
+):
+    """Return order data for a case — customer JWT required, must own the case."""
+    result = await db.execute(select(Case).where(Case.id == case_id))
+    case = result.scalar_one_or_none()
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    if case.customer_email != current_user.get("email"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    order_id = case.order_id
+
+    # Fetch order
+    order_q = text("SELECT order_id, status, total_amount, created_at FROM sim_orders WHERE order_id = :oid")
+    order_row = (await db.execute(order_q, {"oid": order_id})).mappings().first()
+    if not order_row:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Fetch items
+    items_q = text("SELECT item_id, item_name, quantity, unit_price FROM sim_order_items WHERE order_id = :oid")
+    items = [dict(i) for i in (await db.execute(items_q, {"oid": order_id})).mappings().all()]
+
+    response: dict = {
+        "order_id": order_row["order_id"],
+        "status": order_row["status"],
+        "total_amount": float(order_row["total_amount"]),
+        "created_at": str(order_row["created_at"]),
+        "items": items,
+    }
+
+    # Conditionally fetch transaction (refund disputes)
+    if case.dispute_type == "refund":
+        txn_q = text("SELECT status, amount, payment_method FROM sim_transactions WHERE order_id = :oid LIMIT 1")
+        txn = (await db.execute(txn_q, {"oid": order_id})).mappings().first()
+        if txn:
+            response["transaction"] = {"status": txn["status"], "amount": float(txn["amount"]), "payment_method": txn["payment_method"]}
+
+    # Conditionally fetch shipment (delivery disputes)
+    if case.dispute_type == "delivery":
+        ship_q = text("SELECT status, carrier, tracking_number, estimated_delivery FROM sim_shipments WHERE order_id = :oid LIMIT 1")
+        ship = (await db.execute(ship_q, {"oid": order_id})).mappings().first()
+        if ship:
+            response["shipment"] = {
+                "status": ship["status"],
+                "carrier": ship["carrier"],
+                "tracking_number": ship["tracking_number"],
+                "estimated_delivery": str(ship["estimated_delivery"]),
+            }
+
+    return response
 
 
 class CasePatchRequest(BaseModel):
@@ -217,6 +299,8 @@ async def approve_case(
     case.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
+    # Frontend never calls n8n directly. The canonical architecture is:
+    # Frontend -> FastAPI -> n8n (webhooks).
     await trigger_workflow("/webhooks/approved", {"case_id": str(case.id)})
 
     return CaseApproveResponse(status=case.status, message="Approval recorded. Execution started.")
@@ -316,6 +400,8 @@ async def close_case(
     )
     await db.commit()
 
+    # Frontend never calls n8n directly. The canonical architecture is:
+    # Frontend -> FastAPI -> n8n (webhooks).
     await trigger_workflow(
         "/webhooks/conversation-closed",
         {"case_id": str(case.id), "closed_by": payload.closed_by, "close_reason": payload.close_reason},

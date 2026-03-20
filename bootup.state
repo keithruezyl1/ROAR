@@ -1,0 +1,5 @@
+@echo off
+set "STARTED_POSTGRES=0"
+set "STARTED_N8N=1"
+set "STARTED_BACKEND=0"
+set "STARTED_FRONTEND=1"

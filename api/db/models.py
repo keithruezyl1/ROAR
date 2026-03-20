@@ -38,6 +38,7 @@ class Case(Base):
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="pending_triage")
     resolution_path: Mapped[str | None] = mapped_column(String(20), nullable=True)
     assigned_to: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    customer_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     triage_decision: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     information_bundle: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     resolution_plan: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
