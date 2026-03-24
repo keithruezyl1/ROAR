@@ -1,0 +1,2876 @@
+{
+  "exported_at": "2026-03-20T02:24:10.060Z",
+  "source": "Local n8n SQLite workflow_entity (C:/Users/Keith/.n8n/database.sqlite) for graph, settings, connections, nodes, and version metadata; triggerInfo strings verbatim from user-n8n-local get_workflow_details (same workflow IDs, 2026-03-20).",
+  "note": "activeVersion graph omitted by design. Node parameters match the live rows in workflow_entity for this instance. triggerInfo is copied from MCP, not derived from the database.",
+  "workflows": [
+    {
+      "canonical_repo_filename": "01_intake_agent.json",
+      "id": "IFYMhz16s9NvAInS",
+      "name": "#1 ROAR Workflow \u2014 Intake Agent",
+      "active": true,
+      "createdAt": "2026-03-18T00:58:31.253Z",
+      "updatedAt": "2026-03-19T12:44:25.589Z",
+      "versionId": "17122b37-ef86-4343-a4f0-04a682765ec1",
+      "activeVersionId": "17122b37-ef86-4343-a4f0-04a682765ec1",
+      "triggerCount": 1,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "timeSavedMode": "fixed",
+        "callerPolicy": "workflowsFromSameOwner",
+        "availableInMCP": true
+      },
+      "connections": {
+        "Webhook \u2014 case-created": {
+          "main": [
+            [
+              {
+                "node": "Fetch Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Case": {
+          "main": [
+            [
+              {
+                "node": "Fetch Transcript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Transcript": {
+          "main": [
+            [
+              {
+                "node": "Build Intake Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Intake Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Intake",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Intake": {
+          "main": [
+            [
+              {
+                "node": "Parse Intake JSON",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Intake JSON": {
+          "main": [
+            [
+              {
+                "node": "Route by next_action",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route by next_action": {
+          "main": [
+            [
+              {
+                "node": "Post Intake Question",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Update Case \u2014 intent confirmed",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Post insufficient-context message",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Webhook response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Post Intake Question": {
+          "main": [
+            [
+              {
+                "node": "Webhook response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Case \u2014 intent confirmed": {
+          "main": [
+            [
+              {
+                "node": "Trigger WF2 \u2014 bundle-ready",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Trigger WF2 \u2014 bundle-ready": {
+          "main": [
+            [
+              {
+                "node": "Webhook response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Post insufficient-context message": {
+          "main": [
+            [
+              {
+                "node": "Escalate case \u2014 insufficient-context",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Intake": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Intake",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Escalate case \u2014 insufficient-context": {
+          "main": [
+            [
+              {
+                "node": "Webhook response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "case-created",
+            "responseMode": "lastNode",
+            "options": {}
+          },
+          "id": "6b7e603f-4f99-43a3-85dd-538d686fbaa7",
+          "name": "Webhook \u2014 case-created",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            592,
+            176
+          ],
+          "webhookId": "48e22b06-5c96-49bf-a6b7-9abdd721eb09"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{ $json.body.case_id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "d64638a3-e485-48c8-9903-3adedb685c31",
+          "name": "Fetch Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            832,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{ $json.id }}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "5d2223ff-ac02-40e2-af45-3e4b9a6c3134",
+          "name": "Fetch Transcript",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1072,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const caseData = $item(0, 'Fetch Case').$json;\nconst transcript = ($item(0, 'Fetch Transcript').$json.messages || []).slice(-40);\n\nconst priorQuestions = transcript.filter(\n  (m) => m.sender_type === 'agent' && m.metadata?.role === 'intake_question'\n).length;\n\nconst userPayload = {\n  case: caseData,\n  transcript,\n  max_followup_questions: 3,\n};\n\nconst messages = [\n  {\n    role: 'user',\n    content: JSON.stringify(userPayload),\n  },\n];\n\nreturn [{ messages, priorQuestions }];\n"
+          },
+          "id": "28f4da7a-980b-4c02-882a-8d90c333f237",
+          "name": "Build Intake Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1312,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ $json.messages[0].content }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's intake agent for a retail customer dispute system.\n\nYour job is to gather sufficient context from the customer about their dispute,\nthen classify the intent once you have enough information.\n\nRULES:\n\n- Ask a maximum of 3 follow-up questions total across the entire conversation.\n\n- Only ask questions from the approved set for the given dispute_type.\n\n- Once you have sufficient context (or after 3 questions), classify the intent.\n\n- Classify as valid_dispute if the issue is a legitimate refund or delivery problem.\n\n- Classify as insufficient_context only if the customer provided no usable information.\n\n- Be concise and professional.\n\nAPPROVED QUESTIONS --- refund disputes:\n\n1. Have you received any part of your order?\n\n2. What payment method did you use for this order?\n\n3. When was the order placed?\n\nAPPROVED QUESTIONS --- delivery disputes:\n\n1. What is the current tracking status shown to you?\n\n2. Has the estimated delivery date passed?\n\n3. Have you contacted the carrier about this issue?\n\nRESPONSE FORMAT --- valid JSON only, no prose, no markdown:\n\n{ \"action\": \"ask_question\" | \"classify_intent\",\n\n\"question\": \"string (only if action=ask_question)\",\n\n\"intent\": \"valid_dispute\" | \"insufficient_context\" (only if classifying),\n\n\"intent_summary\": \"one sentence summary (only if classifying)\" }"
+                }
+              ]
+            }
+          },
+          "id": "9580f2a7-207a-43ab-9c20-a08c34881ab0",
+          "name": "Basic LLM Chain \u2014 Intake",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            1552,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 400,
+              "responseFormat": "json_object",
+              "temperature": 0.2
+            }
+          },
+          "id": "1185cab0-40a9-4c64-9416-dc6ef98faaed",
+          "name": "OpenAI Chat Model \u2014 Intake",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            1552,
+            416
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst fallbackQuestion = 'Could you share a bit more detail about what happened with your order?';\n\nlet raw = $json;\nlet data;\n\nif (raw && typeof raw === 'object' && (raw.action || raw.question || raw.intent)) {\n  data = raw;\n} else {\n  const text = coerceToString(raw);\n  try {\n    data = JSON.parse(text);\n  } catch (e) {\n    data = { action: 'ask_question', question: fallbackQuestion };\n  }\n}\n\n// Normalize possible intent labels\nlet intent = (data.intent || '').toString().trim();\nif (intent === 'insufficient_info') intent = 'insufficient_context';\n\nlet next_action = 'error';\nlet question = data.question || null;\n\nif (data.action === 'ask_question') {\n  next_action = 'ask_question';\n  question = question || fallbackQuestion;\n} else if (data.action === 'classify_intent') {\n  if (intent === 'valid_dispute') {\n    next_action = 'classify_intent';\n  } else if (intent === 'insufficient_context') {\n    // Keep intake interactive: ask follow-up question\n    next_action = 'ask_question';\n    question = question || fallbackQuestion;\n  } else {\n    next_action = 'ask_question';\n    question = question || fallbackQuestion;\n  }\n} else {\n  next_action = 'ask_question';\n  question = fallbackQuestion;\n}\n\nreturn [{\n  next_action,\n  question,\n  intent: intent || null,\n  intent_summary: data.intent_summary || null,\n}];"
+          },
+          "id": "07d19538-b66e-448c-8d15-a6a5f947d914",
+          "name": "Parse Intake JSON",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1840,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $json.next_action }}",
+            "rules": {
+              "rules": [
+                {
+                  "value2": "ask_question"
+                },
+                {
+                  "value2": "classify_intent",
+                  "output": 1
+                }
+              ]
+            }
+          },
+          "id": "3a5391a2-163c-4315-b119-323eeb540fea",
+          "name": "Route by next_action",
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "position": [
+            2032,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook \u2014 case-created'].json.body.case_id }}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "content",
+                  "value": "={{$json.question || \"Could you share a bit more detail about what happened with your order?\"}}"
+                },
+                {
+                  "name": "sender_type",
+                  "value": "ai"
+                },
+                {
+                  "name": "metadata",
+                  "value": "=={{ {\"role\":\"intake_question\"} }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "99281ac2-a2f9-43cf-983a-fc08fb554160",
+          "name": "Post Intake Question",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            2272,
+            16
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook \u2014 case-created'].json.body.case_id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "status",
+                  "value": "pending_triage"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "25533fc3-bb57-4986-b8d1-52c3f60c9c3e",
+          "name": "Update Case \u2014 intent confirmed",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            2272,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://localhost:5678/webhook/bundle-ready",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"case_id\": $node['Webhook \u2014 case-created'].json.body.case_id,\n  \"dispute_type\": $node['Webhook \u2014 case-created'].json.body.dispute_type,\n  \"order_id\": $node['Webhook \u2014 case-created'].json.body.order_id\n}",
+            "options": {}
+          },
+          "id": "c8228933-24ca-4b18-9db0-87cbabd330a9",
+          "name": "Trigger WF2 \u2014 bundle-ready",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            2512,
+            48
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook \u2014 case-created'].json.body.case_id }}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"content\": \"Unable to gather enough information. Please contact support.\",\n  \"sender_type\": \"ai\"\n}",
+            "options": {}
+          },
+          "id": "aeecb305-10ce-4911-822e-85d1cb1b891f",
+          "name": "Post insufficient-context message",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            2272,
+            368
+          ]
+        },
+        {
+          "parameters": {
+            "keepOnlySet": true,
+            "values": {
+              "boolean": [
+                {
+                  "name": "ok",
+                  "value": true
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "0b6cf0a3-8a67-4875-a2ed-82ae2a8a6b3b",
+          "name": "Webhook response",
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 2,
+          "position": [
+            2752,
+            176
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{ $node[\"Webhook \u2014 case-created\"].json.body.case_id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"status\": \"escalated_human_required\"\n}",
+            "options": {}
+          },
+          "id": "6a584ba5-fbce-4074-a978-ce1e868c74d3",
+          "name": "Escalate case \u2014 insufficient-context",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            2512,
+            288
+          ]
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook \u2014 case-created\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/case-created\n\t\t\t\t\t - Test path: /webhook-test/case-created\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond when the last node is executed. Returns the JSON data of the first entry of the last node. Always returns a JSON object.\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>"
+    },
+    {
+      "canonical_repo_filename": "02_data_retrieval.json",
+      "id": "YgwEprPNmzxzKHVH",
+      "name": "#2 ROAR Workflow - Data Retrieval Agent",
+      "active": true,
+      "createdAt": "2026-03-18T07:30:05.894Z",
+      "updatedAt": "2026-03-19T12:45:18.004Z",
+      "versionId": "8dba51ab-0934-4770-a463-d4a9bfc21f42",
+      "activeVersionId": "8dba51ab-0934-4770-a463-d4a9bfc21f42",
+      "triggerCount": 1,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": true
+      },
+      "connections": {
+        "Webhook Trigger": {
+          "main": [
+            [
+              {
+                "node": "Route by Dispute Type",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route by Dispute Type": {
+          "main": [
+            [
+              {
+                "node": "Query OMS",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Query OMS",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Query OMS",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Query OMS": {
+          "main": [
+            [
+              {
+                "node": "Route after OMS",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route after OMS": {
+          "main": [
+            [
+              {
+                "node": "Query Payment - Txn",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Query Logistics",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Assemble Bundle",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Query Payment - Txn": {
+          "main": [
+            [
+              {
+                "node": "Query Payment - Refunds",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Query Payment - Refunds": {
+          "main": [
+            [
+              {
+                "node": "Assemble Bundle",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Query Logistics": {
+          "main": [
+            [
+              {
+                "node": "Query Inventory",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Query Inventory": {
+          "main": [
+            [
+              {
+                "node": "Assemble Bundle",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Assemble Bundle": {
+          "main": [
+            [
+              {
+                "node": "Update Case - Bundle",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Case - Bundle": {
+          "main": [
+            [
+              {
+                "node": "Trigger Triage",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "bundle-ready",
+            "responseMode": "lastNode",
+            "options": {}
+          },
+          "id": "d91421ee-70b2-47d0-9f0a-95878302983c",
+          "name": "Webhook Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            -1024,
+            128
+          ],
+          "webhookId": "5a4cd928-4baf-4d29-b04b-f4c096e40dc8"
+        },
+        {
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $json.body.dispute_type }}",
+            "rules": {
+              "rules": [
+                {
+                  "value2": "refund"
+                },
+                {
+                  "value2": "delivery",
+                  "output": 1
+                }
+              ]
+            }
+          },
+          "id": "9d021795-a38e-446d-9f73-011d27a20be6",
+          "name": "Route by Dispute Type",
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "position": [
+            -784,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/internal/sources/orders?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "b97e0e2c-150c-43d5-98c0-1626477ef42c",
+          "name": "Query OMS",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            -544,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $node['Webhook Trigger'].json.body.dispute_type }}",
+            "rules": {
+              "rules": [
+                {
+                  "value2": "refund"
+                },
+                {
+                  "value2": "delivery",
+                  "output": 1
+                }
+              ]
+            }
+          },
+          "id": "7b3945cf-5f4c-488d-9463-e1bbb3554b8e",
+          "name": "Route after OMS",
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "position": [
+            -304,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/internal/sources/transactions?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "664fe5fe-d19c-463e-8d5a-c38e068aba8b",
+          "name": "Query Payment - Txn",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            -64,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/internal/sources/refunds?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "8c4fa37b-f00f-489e-9ca5-2872811ec279",
+          "name": "Query Payment - Refunds",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            176,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/internal/sources/shipments?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "4555443f-60cb-44fe-8b62-a28bd5fca504",
+          "name": "Query Logistics",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            -64,
+            160
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/internal/sources/inventory?item_ids={{ ($items('Query OMS')[0].json.order_items || []).map(i => i.item_id).join(',') }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "c4ee0151-5ca7-43c9-8378-5079e6e03f86",
+          "name": "Query Inventory",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            176,
+            240
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const safeItems = (nodeName) => {\n  try {\n    return $items(nodeName) || [];\n  } catch (e) {\n    return [];\n  }\n};\n\nconst oms = safeItems('Query OMS')[0]?.json ?? {};\nconst paymentTxnItems = safeItems('Query Payment - Txn');\nconst refundsItems = safeItems('Query Payment - Refunds');\nconst logisticsItems = safeItems('Query Logistics');\nconst inventoryItems = safeItems('Query Inventory');\n\nconst transaction = paymentTxnItems[0]?.json?.transaction ?? null;\nconst refund_records = refundsItems[0]?.json?.refund_records ?? null;\nconst shipment = logisticsItems[0]?.json?.shipment ?? null;\nconst tracking_events = logisticsItems[0]?.json?.tracking_events ?? null;\nconst stock_records = inventoryItems[0]?.json?.stock_records ?? null;\n\nconst input = $node['Webhook Trigger'].json.body || $json.body || $json;\n\nconst bundle = {\n  order: oms.order ?? null,\n  order_items: oms.order_items ?? [],\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n  dispute_type: input.dispute_type ?? null,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [{\n  case_id: input.case_id,\n  dispute_type: input.dispute_type,\n  information_bundle: bundle,\n}];"
+          },
+          "id": "9a997a2b-aea4-4667-acd7-50ad297b6c5d",
+          "name": "Assemble Bundle",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            400,
+            400
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "information_bundle",
+                  "value": "={{$json.information_bundle}}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "e0725b30-0c44-4bdd-a2d0-ef9308c71702",
+          "name": "Update Case - Bundle",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            576,
+            400
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://localhost:5678/webhook/triage-complete",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "=dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{$json.case_id || $json.id}}"
+                },
+                {
+                  "name": "dispute_type",
+                  "value": "={{$json.dispute_type}}"
+                }
+              ]
+            },
+            "options": {
+              "response": {
+                "response": {
+                  "neverError": true,
+                  "responseFormat": "text"
+                }
+              }
+            }
+          },
+          "id": "d99ab47c-8510-41d4-8b71-92ca957219ba",
+          "name": "Trigger Triage",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            736,
+            400
+          ],
+          "onError": "continueRegularOutput"
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook Trigger\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/bundle-ready\n\t\t\t\t\t - Test path: /webhook-test/bundle-ready\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond when the last node is executed. Returns the JSON data of the first entry of the last node. Always returns a JSON object.\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>"
+    },
+    {
+      "canonical_repo_filename": "03_triage_agent.json",
+      "id": "PRCMSJ8mOPbRY7Tr",
+      "name": "#3 ROAR Workflow - Triage Agent",
+      "active": true,
+      "createdAt": "2026-03-18T07:37:16.307Z",
+      "updatedAt": "2026-03-19T12:45:59.368Z",
+      "versionId": "ce211a27-a36a-4a5e-91a6-d6f5fdfc3961",
+      "activeVersionId": "ce211a27-a36a-4a5e-91a6-d6f5fdfc3961",
+      "triggerCount": 1,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": true
+      },
+      "connections": {
+        "Webhook Trigger": {
+          "main": [
+            [
+              {
+                "node": "Fetch Full Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Full Case": {
+          "main": [
+            [
+              {
+                "node": "Fetch Policies",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Policies": {
+          "main": [
+            [
+              {
+                "node": "Build Triage Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Triage Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Triage",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Triage": {
+          "main": [
+            [
+              {
+                "node": "Parse + Validate",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse + Validate": {
+          "main": [
+            [
+              {
+                "node": "Route on Decision",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route on Decision": {
+          "main": [
+            [
+              {
+                "node": "Update - Awaiting Approval",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Update - Escalated",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Update - Escalated",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update - Awaiting Approval": {
+          "main": [
+            [
+              {
+                "node": "Trigger Resolution Plan",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update - Escalated": {
+          "main": [
+            [
+              {
+                "node": "Trigger Summarization",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Triage": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Triage",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "triage-complete",
+            "options": {}
+          },
+          "id": "7a3aa3e5-cd8a-42e8-944a-c906e883b5b8",
+          "name": "Webhook Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            -1680,
+            128
+          ],
+          "webhookId": "96ad1054-b20a-4b46-81d8-174ce9dba527"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "812b6201-12bb-4e5c-bd36-09376848f8eb",
+          "name": "Fetch Full Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            -1440,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/policies",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "16094898-c94e-4eb5-894f-dbc29283b7dc",
+          "name": "Fetch Policies",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            -1200,
+            128
+          ],
+          "alwaysOutputData": true
+        },
+        {
+          "parameters": {
+            "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\nconst policies = $items('Fetch Policies')[0]?.json ?? [];\n\nconst dispute_type =\n  caseData.dispute_type || $node['Webhook Trigger'].json.body.dispute_type;\n\nconst bundle = caseData.information_bundle ?? {};\nconst order = bundle.order ?? null;\nconst transaction = bundle.transaction ?? null;\nconst refundRecords = Array.isArray(bundle.refund_records) ? bundle.refund_records : [];\nconst shipment = bundle.shipment ?? null;\nconst trackingEvents = Array.isArray(bundle.tracking_events) ? bundle.tracking_events : [];\nconst stockRecords = Array.isArray(bundle.stock_records) ? bundle.stock_records : [];\n\nconst current_date = new Date().toISOString().split('T')[0];\n\nconst toDateOnly = (value) => {\n  if (!value || typeof value !== 'string') return null;\n  return value.includes('T') ? value.split('T')[0] : value;\n};\n\nconst diffDaysUtc = (fromDate, toDate) => {\n  if (!fromDate || !toDate) return null;\n  const from = new Date(`${fromDate}T00:00:00Z`);\n  const to = new Date(`${toDate}T00:00:00Z`);\n  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;\n  return Math.floor((to.getTime() - from.getTime()) / 86400000);\n};\n\nconst order_created_date = toDateOnly(order?.created_at);\nconst days_since_order =\n  order_created_date != null ? diffDaysUtc(order_created_date, current_date) : null;\n\nconst transaction_amount =\n  transaction?.amount != null && !Number.isNaN(Number(transaction.amount))\n    ? Number(transaction.amount)\n    : null;\n\nconst refundFacts = {\n  payment_status: transaction?.status ?? null,\n  order_status: order?.status ?? null,\n  transaction_amount,\n  amount_threshold: 500,\n  refund_record_count: refundRecords.length,\n  order_created_date,\n  days_since_order,\n  within_return_window:\n    days_since_order != null ? days_since_order >= 0 && days_since_order <= 30 : null,\n};\n\nconst deliveryFacts = {\n  shipment_status: shipment?.status ?? null,\n  shipped_at: shipment?.shipped_at ?? null,\n  estimated_delivery: shipment?.estimated_delivery ?? null,\n  tracking_event_count: trackingEvents.length,\n  stock_record_count: stockRecords.length,\n  current_date,\n};\n\nconst refundRules = [\n  'Payment confirmed: sim_transactions.status = \\'confirmed\\'',\n  'Order fulfilled or returned: sim_orders.status IN (\\'fulfilled\\',\\'returned\\')',\n  'Amount below threshold: sim_transactions.amount <= 500 THB',\n  'No prior dispute: sim_refund_records empty for this order_id',\n  'Within return window: order created_at within 30 days of today',\n];\n\nconst deliveryRules = [\n  'Delay (not lost): sim_shipments.status = \\'delayed\\' NOT \\'lost\\'/\\'failed\\'',\n  'Item shipped: sim_shipments.shipped_at IS NOT NULL',\n  'No duplicate complaint: No prior open case for same order_id',\n  'Within SLA window: sim_shipments.estimated_delivery >= today',\n];\n\nconst triage_rules = dispute_type === 'refund' ? refundRules : deliveryRules;\n\nconst user_message = {\n  information_bundle: bundle || null,\n  dispute_type,\n  triage_rules,\n  policy_context: policies,\n  current_date,\n  facts: dispute_type === 'refund' ? { refund: refundFacts } : { delivery: deliveryFacts },\n};\n\nreturn [\n  {\n    case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n    user_message,\n  },\n];"
+          },
+          "id": "5ccd2e9f-144f-4274-aab8-1805ac5e983e",
+          "name": "Build Triage Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            -960,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ JSON.stringify($json.user_message) }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's triage agent. Apply rule-based retail policies to an information bundle\n\nand determine whether a dispute can be resolved autonomously or must be escalated.\n\nYou will receive: information_bundle, triage_rules, policy_context, current_date.\n\nEVALUATION RULES:\n\n- Evaluate every rule in triage_rules. Return pass or fail for each.\n\n- ALL rules pass \u2192 routing_decision = autonomous\n\n- ANY rule fails \u2192 routing_decision = escalation\n\n- Any data source null or empty \u2192 rule failure \u2192 routing_decision = escalation\n\n- Reference specific data values in your evidence field.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"routing_decision\": \"autonomous\" | \"escalation\",\n\n\"rules_evaluated\": [ { \"rule\": \"string\", \"passed\": bool, \"evidence\": \"string\" } ],\n\n\"justification\": \"paragraph\",\n\n\"policies_applied\": [\"slug\"],\n\n\"slas_applied\": [\"slug\"] }"
+                }
+              ]
+            }
+          },
+          "id": "6d8310ce-5f69-4c5e-b0ef-c2228dcea1c3",
+          "name": "Basic LLM Chain \u2014 Triage",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            -768,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 800,
+              "responseFormat": "json_object",
+              "temperature": 0
+            }
+          },
+          "id": "6cadbd7e-610d-42ad-99e0-94129bfbcae5",
+          "name": "OpenAI Chat Model \u2014 Triage",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            -704,
+            336
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst promptItem = $items('Build Triage Prompt')[0]?.json ?? {};\nconst prompt = promptItem.user_message ?? {};\nconst disputeType = prompt.dispute_type;\nconst caseId =\n  promptItem.case_id || $node['Webhook Trigger'].json.body.case_id;\n\nlet raw = $json;\nlet decision;\n\ntry {\n  if (raw && typeof raw === 'object' && raw.routing_decision) {\n    decision = raw;\n  } else {\n    const text = coerceToString(raw);\n    decision = typeof text === 'string' && text.trim().length ? JSON.parse(text) : null;\n  }\n} catch (e) {\n  decision = null;\n}\n\nconst normalizeStringArray = (value) =>\n  Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];\n\nif (disputeType === 'refund') {\n  const facts = prompt.facts?.refund ?? {};\n\n  const amount = facts.transaction_amount;\n  const daysSinceOrder = facts.days_since_order;\n\n  const rules_evaluated = [\n    {\n      rule: \"Payment confirmed: sim_transactions.status = 'confirmed'\",\n      passed: facts.payment_status === 'confirmed',\n      evidence:\n        facts.payment_status != null\n          ? `Transaction status is '${facts.payment_status}'.`\n          : 'Transaction status is missing.',\n    },\n    {\n      rule: \"Order fulfilled or returned: sim_orders.status IN ('fulfilled','returned')\",\n      passed: ['fulfilled', 'returned'].includes(facts.order_status),\n      evidence:\n        facts.order_status != null\n          ? `Order status is '${facts.order_status}'.`\n          : 'Order status is missing.',\n    },\n    {\n      rule: 'Amount below threshold: sim_transactions.amount <= 500 THB',\n      passed: typeof amount === 'number' && amount <= 500,\n      evidence:\n        typeof amount === 'number'\n          ? `Transaction amount is ${amount} THB and threshold is 500 THB.`\n          : 'Transaction amount is missing.',\n    },\n    {\n      rule: 'No prior dispute: sim_refund_records empty for this order_id',\n      passed: typeof facts.refund_record_count === 'number' && facts.refund_record_count === 0,\n      evidence:\n        typeof facts.refund_record_count === 'number'\n          ? `refund_records contains ${facts.refund_record_count} record(s).`\n          : 'refund_records data is missing.',\n    },\n    {\n      rule: 'Within return window: order created_at within 30 days of today',\n      passed:\n        typeof daysSinceOrder === 'number' &&\n        daysSinceOrder >= 0 &&\n        daysSinceOrder <= 30,\n      evidence:\n        facts.order_created_date != null && typeof daysSinceOrder === 'number'\n          ? `Order created_at is ${facts.order_created_date} and is ${daysSinceOrder} day(s) old.`\n          : 'Order created_at is missing.',\n    },\n  ];\n\n  const routing_decision = rules_evaluated.every((rule) => rule.passed)\n    ? 'autonomous'\n    : 'escalation';\n\n  const failedRules = rules_evaluated\n    .filter((rule) => !rule.passed)\n    .map((rule) => rule.rule);\n\n  const justification =\n    routing_decision === 'autonomous'\n      ? `All refund triage rules passed based on the information bundle. Transaction amount ${amount} THB is within the 500 THB threshold and the order is within the 30-day return window.`\n      : `Refund triage requires escalation because the following rule(s) failed: ${failedRules.join('; ')}.`;\n\n  return [\n    {\n      case_id: caseId,\n      routing_decision,\n      rules_evaluated,\n      justification,\n      policies_applied: normalizeStringArray(decision?.policies_applied),\n      slas_applied: normalizeStringArray(decision?.slas_applied),\n    },\n  ];\n}\n\nconst ok =\n  decision &&\n  (decision.routing_decision === 'autonomous' ||\n    decision.routing_decision === 'escalation');\n\nconst safeDecision = ok\n  ? {\n      routing_decision: decision.routing_decision,\n      rules_evaluated: Array.isArray(decision.rules_evaluated) ? decision.rules_evaluated : [],\n      justification:\n        typeof decision.justification === 'string' && decision.justification.trim().length\n          ? decision.justification\n          : 'Triage completed.',\n      policies_applied: normalizeStringArray(decision.policies_applied),\n      slas_applied: normalizeStringArray(decision.slas_applied),\n    }\n  : {\n      routing_decision: 'escalation',\n      rules_evaluated: [],\n      justification: 'Triage error - manual review required.',\n      policies_applied: [],\n      slas_applied: [],\n    };\n\nreturn [\n  {\n    case_id: caseId,\n    ...safeDecision,\n  },\n];"
+          },
+          "id": "945e40f6-f7d8-4861-b55d-2f3d98218ffc",
+          "name": "Parse + Validate",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            -480,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $json.routing_decision }}",
+            "rules": {
+              "rules": [
+                {
+                  "value2": "autonomous"
+                },
+                {
+                  "value2": "escalation",
+                  "output": 1
+                }
+              ]
+            }
+          },
+          "id": "5bca4a2c-31ef-49b9-9801-7def5c88c6ab",
+          "name": "Route on Decision",
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "position": [
+            -240,
+            128
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "status",
+                  "value": "awaiting_approval"
+                },
+                {
+                  "name": "resolution_path",
+                  "value": "autonomous"
+                },
+                {
+                  "name": "triage_decision",
+                  "value": "={{ {\n  routing_decision: $json.routing_decision,\n  rules_evaluated: $json.rules_evaluated || [],\n  justification: $json.justification || \"\",\n  policies_applied: $json.policies_applied || [],\n  slas_applied: $json.slas_applied || []\n} }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "019af414-6ef3-420b-849d-61c98b5d4050",
+          "name": "Update - Awaiting Approval",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            0,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://localhost:5678/webhook/resolution-plan",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{ $json.case_id || $json.id }}"
+                }
+              ]
+            },
+            "options": {
+              "response": {
+                "response": {
+                  "neverError": true,
+                  "responseFormat": "text"
+                }
+              }
+            }
+          },
+          "id": "75ea7e38-135a-47bc-bc33-6b8592c47f62",
+          "name": "Trigger Resolution Plan",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            240,
+            0
+          ],
+          "onError": "continueRegularOutput"
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "status",
+                  "value": "escalated_human_required"
+                },
+                {
+                  "name": "resolution_path",
+                  "value": "escalation"
+                },
+                {
+                  "name": "triage_decision",
+                  "value": "={{ {\n  routing_decision: $json.routing_decision,\n  rules_evaluated: $json.rules_evaluated || [],\n  justification: $json.justification || \"\",\n  policies_applied: $json.policies_applied || [],\n  slas_applied: $json.slas_applied || []\n} }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "2773cfdf-bcb0-4109-abf5-476fd5257294",
+          "name": "Update - Escalated",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            0,
+            240
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://localhost:5678/webhook/triage-escalation",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "dev-webhook-secret-change-in-production"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{ $json.case_id || $json.id }}"
+                }
+              ]
+            },
+            "options": {
+              "response": {
+                "response": {
+                  "neverError": true,
+                  "responseFormat": "text"
+                }
+              }
+            }
+          },
+          "id": "d1476fff-7c89-409d-8357-8151539e64fb",
+          "name": "Trigger Summarization",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            240,
+            240
+          ],
+          "onError": "continueRegularOutput"
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook Trigger\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/triage-complete\n\t\t\t\t\t - Test path: /webhook-test/triage-complete\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond immediately with the message \"Workflow got started.\"\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>"
+    },
+    {
+      "canonical_repo_filename": "04_summarization.json",
+      "id": "v8DDRaFudzxJc3Ak",
+      "name": "#4 ROAR Workflow - Summarization Agent",
+      "active": true,
+      "createdAt": "2026-03-18T07:40:51.047Z",
+      "updatedAt": "2026-03-19T12:46:35.679Z",
+      "versionId": "424c5cdd-8d4c-4e57-a236-65d1a8aa9be7",
+      "activeVersionId": "424c5cdd-8d4c-4e57-a236-65d1a8aa9be7",
+      "triggerCount": 1,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": true,
+        "timeSavedMode": "fixed",
+        "callerPolicy": "workflowsFromSameOwner"
+      },
+      "connections": {
+        "Webhook Trigger": {
+          "main": [
+            [
+              {
+                "node": "Fetch Full Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Full Case": {
+          "main": [
+            [
+              {
+                "node": "Build Summary Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Summary Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Summary",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Summary": {
+          "main": [
+            [
+              {
+                "node": "Parse + Validate",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse + Validate": {
+          "main": [
+            [
+              {
+                "node": "Save Summary to Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Save Summary to Case": {
+          "main": [
+            [
+              {
+                "node": "Post Customer Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Summary": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Summary",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "triage-escalation",
+            "options": {}
+          },
+          "id": "ee3df93d-571f-43d2-aebc-eb8a2ed591b2",
+          "name": "Webhook Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            0,
+            0
+          ],
+          "webhookId": "a9c8f902-27ee-45d9-b297-fa32ef31d9a4"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "a4496fcc-57e4-43a8-bd32-2821dd6304fd",
+          "name": "Fetch Full Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            240,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\n\nconst user_message = {\n  dispute_type: c.dispute_type ?? null,\n  order_id: c.order_id ?? null,\n  customer_name: c.customer_name ?? null,\n  information_bundle: c.information_bundle ?? null,\n  triage_decision: c.triage_decision ?? null,\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook Trigger'].json.body.case_id,\n  user_message,\n}];\n"
+          },
+          "id": "624137d9-1db4-4ed0-a761-e1c6234c1fe7",
+          "name": "Build Summary Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            480,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ JSON.stringify($json.user_message) }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's summarization agent. Generate concise case summaries for escalation agents\n\nwho need to quickly understand a dispute before joining a live customer chat.\n\nGUIDELINES:\n\n- summary: 2-3 sentences maximum.\n\n- key_facts: 3-5 items, specific values preferred (amounts, statuses, dates).\n\n- recommended_action: one clear directive.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"summary\": \"string\",\n\n\"key_facts\": [\"string\"],\n\n\"escalation_reason\": \"string\",\n\n\"recommended_action\": \"string\",\n\n\"data_sources_queried\": [\"oms\",\"logistics\"],\n\n\"policies_relevant\": [\"policy-slug\"] }"
+                }
+              ]
+            }
+          },
+          "id": "f71cfe0d-b1e3-4bf9-a746-b9ec4733c64f",
+          "name": "Basic LLM Chain \u2014 Summary",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            672,
+            -96
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 600,
+              "responseFormat": "json_object",
+              "temperature": 0.3
+            }
+          },
+          "id": "d6645122-5c4a-4f98-983f-a2e484476c14",
+          "name": "OpenAI Chat Model \u2014 Summary",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            720,
+            192
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\n\nconst coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet summary;\ntry {\n  if ($json && typeof $json === 'object' && ($json.summary || $json.key_facts)) {\n    summary = $json;\n  } else {\n    const text = coerceToString($json);\n    summary = JSON.parse(text);\n  }\n} catch (e) {\n  summary = null;\n}\n\nconst valid = summary\n  && typeof summary.summary === 'string'\n  && Array.isArray(summary.key_facts)\n  && typeof summary.escalation_reason === 'string'\n  && typeof summary.recommended_action === 'string'\n  && Array.isArray(summary.data_sources_queried)\n  && Array.isArray(summary.policies_relevant);\n\nif (!valid) {\n  summary = {\n    summary: `Escalated ${caseData.dispute_type || 'unknown'} dispute for order ${caseData.order_id || 'unknown'}.`,\n    key_facts: [\n      caseData.triage_decision?.justification || 'Escalation due to triage error or incomplete data.',\n    ],\n    escalation_reason: 'LLM summarization failed, using minimal fallback.',\n    recommended_action: 'Human agent should review the full case bundle and triage decision.',\n    data_sources_queried: ['oms'],\n    policies_relevant: [],\n  };\n}\n\nreturn [{\n  case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n  summary,\n}];\n"
+          },
+          "id": "bd9706e0-f5c2-4fc9-8379-9116e0eb03c6",
+          "name": "Parse + Validate",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            960,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "=escalation_summary",
+                  "value": "={{ \n  typeof $item(0, 'Parse + Validate').$json.summary === 'string'\n    ? $item(0, 'Parse + Validate').$json.summary\n    : ($item(0, 'Parse + Validate').$json.summary?.summary || \"\")\n}}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "9d66864d-7b7b-4706-8416-f301aebaa90a",
+          "name": "Save Summary to Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1200,
+            0
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{ $json.id || $json.case_id }}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "=content",
+                  "value": "={{ \n  typeof $item(0, 'Parse + Validate').$json.summary === 'string'\n    ? $item(0, 'Parse + Validate').$json.summary\n    : ($item(0, 'Parse + Validate').$json.summary?.summary || \"Your case has been escalated. A customer care specialist will join shortly.\")\n}}"
+                },
+                {
+                  "name": "sender_type",
+                  "value": "system"
+                },
+                {
+                  "name": "=metadata",
+                  "value": "={{ typeof $json.summary === 'string'\n  ? $json.summary\n  : ($json.summary?.summary || \"Your case has been escalated. A customer care specialist will join shortly.\") }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "1ffc00e5-49c9-49b9-a4c6-b1b625559422",
+          "name": "Post Customer Message",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1440,
+            0
+          ]
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook Trigger\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/triage-escalation\n\t\t\t\t\t - Test path: /webhook-test/triage-escalation\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond immediately with the message \"Workflow got started.\"\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>"
+    },
+    {
+      "canonical_repo_filename": "05_resolution.json",
+      "id": "j5AO9jThlTSFeDGS",
+      "name": "#5 ROAR Workflow - Resolution Agent",
+      "active": true,
+      "createdAt": "2026-03-18T08:39:15.195Z",
+      "updatedAt": "2026-03-19T12:47:27.104Z",
+      "versionId": "4b896fe1-c964-4550-9bbe-82fc3a88690c",
+      "activeVersionId": "4b896fe1-c964-4550-9bbe-82fc3a88690c",
+      "triggerCount": 2,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": true
+      },
+      "connections": {
+        "Webhook - Plan": {
+          "main": [
+            [
+              {
+                "node": "Fetch Case (Plan)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Case (Plan)": {
+          "main": [
+            [
+              {
+                "node": "Build Plan Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Plan Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Plan",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Plan": {
+          "main": [
+            [
+              {
+                "node": "Parse Plan",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Plan": {
+          "main": [
+            [
+              {
+                "node": "Save Plan to Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook - Approved": {
+          "main": [
+            [
+              {
+                "node": "Fetch Case + Plan",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Case + Plan": {
+          "main": [
+            [
+              {
+                "node": "Build Execute Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Execute Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Execute",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route by Dispute Type": {
+          "main": [
+            [
+              {
+                "node": "Create Refund Record",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Create Return Record",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Update Case - Resolved",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Refund Record": {
+          "main": [
+            [
+              {
+                "node": "Update Case - Resolved",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Return Record": {
+          "main": [
+            [
+              {
+                "node": "Update Case - Resolved",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Case - Resolved": {
+          "main": [
+            [
+              {
+                "node": "Post Resolution Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Plan": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Plan",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Execute": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Execute",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Execute": {
+          "main": [
+            [
+              {
+                "node": "Route by Dispute Type",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "resolution-plan",
+            "options": {}
+          },
+          "id": "15c7e9e0-105b-4c42-9cf3-e08c96ce6e88",
+          "name": "Webhook - Plan",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            0,
+            -176
+          ],
+          "webhookId": "952052e8-e634-4e28-a5be-9a77c7fbbe44"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "122a51d9-4bed-4e94-ba32-509bbb47ce53",
+          "name": "Fetch Case (Plan)",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            240,
+            -176
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const c = $items('Fetch Case (Plan)')[0]?.json ?? {};\n\nconst user_message = {\n  dispute_type: c.dispute_type ?? null,\n  information_bundle: c.information_bundle ?? null,\n  triage_decision: c.triage_decision ?? null,\n  policies_applied: c.triage_decision?.policies_applied || [],\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook - Plan'].json.body.case_id,\n  user_message,\n}];\n"
+          },
+          "id": "e87e4ec0-7abf-4b1a-b161-af51b92fb83a",
+          "name": "Build Plan Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            480,
+            -176
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ JSON.stringify($json.user_message) }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's resolution agent --- Phase 1.\n\nGenerate a resolution plan for a dispute that has passed autonomous triage.\n\nRESOLUTION TYPES: refund | replacement | redelivery | store_credit\n\n- refund: monetary refund for confirmed transaction amount\n\n- replacement: new shipment for affected items\n\n- redelivery: rearrange delivery for delayed shipment\n\n- store_credit: credit if refund not applicable\n\nGUIDELINES:\n\n- steps: 3-5 clear actionable instructions.\n\n- amount: THB value, only for refund type, null otherwise.\n\n- customer_message: professional, empathetic, specific to resolution.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"resolution_type\": \"refund\" | \"replacement\" | \"redelivery\" | \"store_credit\",\n\n\"amount\": number | null,\n\n\"steps\": [\"string\"],\n\n\"customer_message\": \"string\" }"
+                }
+              ]
+            }
+          },
+          "id": "bae15838-9550-4a93-882c-27f8389680e7",
+          "name": "Basic LLM Chain \u2014 Plan",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            672,
+            -208
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 600,
+              "responseFormat": "json_object",
+              "temperature": 0.2
+            }
+          },
+          "id": "67f4e5e8-696d-42c6-aa2c-f40b5b90e70f",
+          "name": "OpenAI Chat Model \u2014 Plan",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            720,
+            16
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet plan;\ntry {\n  if ($json && typeof $json === 'object' && $json.resolution_type) {\n    plan = $json;\n  } else {\n    const text = coerceToString($json);\n    plan = JSON.parse(text);\n  }\n} catch (e) {\n  plan = null;\n}\n\nconst validTypes = ['refund', 'replacement', 'redelivery', 'store_credit'];\n\nif (!plan || !validTypes.includes(plan.resolution_type)) {\n  plan = {\n    resolution_type: 'refund',\n    amount: null,\n    steps: ['Review case manually.'],\n    customer_message: 'We are reviewing your case. Please wait while a specialist confirms the resolution.',\n  };\n}\n\nif (!Array.isArray(plan.steps)) plan.steps = ['Review case manually.'];\nif (plan.resolution_type === 'refund' && typeof plan.amount !== 'number') {\n  plan.amount = 0;\n}\n\nreturn [{\n  case_id: $items('Build Plan Prompt')[0]?.json.case_id || $node['Webhook - Plan'].json.body.case_id,\n  ...plan,\n}];\n"
+          },
+          "id": "d4b44bae-b274-4206-b707-c85605543aff",
+          "name": "Parse Plan",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            960,
+            -176
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "resolution_plan",
+                  "value": "={{ {\n  resolution_type: $json.resolution_type,\n  amount: $json.amount ?? null,\n  steps: Array.isArray($json.steps) ? $json.steps : [],\n  customer_message: typeof $json.customer_message === 'string'\n    ? $json.customer_message\n    : String($json.customer_message ?? '')\n} }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "7d455536-f7e0-4a2d-8a7a-9773feeb15b0",
+          "name": "Save Plan to Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1200,
+            -176
+          ]
+        },
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "approved",
+            "options": {}
+          },
+          "id": "3c4ba6b9-661b-4004-b37a-9adbbf31b429",
+          "name": "Webhook - Approved",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            -48,
+            320
+          ],
+          "webhookId": "2d0072ce-c56f-4de1-acf4-3da9b1aad12f"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "1e52deb7-4a81-4149-b90d-f4efde1cf92d",
+          "name": "Fetch Case + Plan",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            192,
+            320
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const c = $items('Fetch Case + Plan')[0]?.json ?? {};\n\nconst user_message = {\n  resolution_plan: c.resolution_plan ?? null,\n  information_bundle: c.information_bundle ?? null,\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook - Approved'].json.body.case_id,\n  user_message,\n}];\n"
+          },
+          "id": "8af36ba1-e7f8-472a-9ae5-cc44ee6420c6",
+          "name": "Build Execute Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            432,
+            320
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 400,
+              "responseFormat": "json_object",
+              "temperature": 0
+            }
+          },
+          "id": "b177dfab-aeb3-42bf-888b-85c93d237ec4",
+          "name": "OpenAI Chat Model \u2014 Execute",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            672,
+            496
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $items('Fetch Case + Plan')[0].json.dispute_type }}",
+            "rules": {
+              "rules": [
+                {
+                  "value2": "refund"
+                },
+                {
+                  "value2": "delivery",
+                  "output": 1
+                }
+              ]
+            }
+          },
+          "id": "9ae8039b-8998-4026-a539-66781d2af602",
+          "name": "Route by Dispute Type",
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 1,
+          "position": [
+            912,
+            320
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/refund_requests",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.id }}"
+                },
+                {
+                  "name": "order_id",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.order_id }}"
+                },
+                {
+                  "name": "amount",
+                  "value": "={{ Number($items('Fetch Case + Plan')[0].json.resolution_plan?.amount ?? 0) }}"
+                },
+                {
+                  "name": "reason",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.resolution_plan?.steps?.[0] ?? 'Approved resolution plan' }}"
+                },
+                {
+                  "name": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "0601402f-d43c-4475-b11b-8f696d11f058",
+          "name": "Create Refund Record",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1168,
+            208
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/return_requests",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.id }}"
+                },
+                {
+                  "name": "order_id",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.order_id }}"
+                },
+                {
+                  "name": "item_ids",
+                  "value": "={{ ($items('Fetch Case + Plan')[0].json.information_bundle?.order_items || []).map(i => i.item_id).filter(Boolean) }}"
+                },
+                {
+                  "name": "return_reason",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.resolution_plan?.steps?.[0] ?? 'Approved resolution plan' }}"
+                },
+                {
+                  "name": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "f160f242-aeec-4851-b830-d18b52fbabd7",
+          "name": "Create Return Record",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1168,
+            352
+          ]
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$items('Fetch Case + Plan')[0].json.id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "status",
+                  "value": "resolved"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "f77bb0c4-993f-4b1f-ae22-b93ef3e328fd",
+          "name": "Update Case - Resolved",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1408,
+            544
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{$items('Fetch Case + Plan')[0].json.id}}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "content",
+                  "value": "={{ $items('Fetch Case + Plan')[0].json.resolution_plan?.customer_message ?? 'Your case has been resolved.' }}"
+                },
+                {
+                  "name": "sender_type",
+                  "value": "agent"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "b59086f8-5b44-4f32-aec8-142efb6c0a16",
+          "name": "Post Resolution Message",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1616,
+            544
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ JSON.stringify($json.user_message) }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's resolution agent --- Phase 2. The resolution plan has been approved.\n\nConfirm execution of the plan and report actions taken.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"actions_taken\": [\"string description of each step executed\"],\n\n\"outcome\": \"success\" | \"partial\" | \"failed\",\n\n\"notes\": \"string\" }"
+                }
+              ]
+            }
+          },
+          "id": "b57d4e26-3857-4bc2-9266-75fbd5f5103e",
+          "name": "Basic LLM Chain \u2014 Execute",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            608,
+            272
+          ]
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook - Plan\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/resolution-plan\n\t\t\t\t\t - Test path: /webhook-test/resolution-plan\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond immediately with the message \"Workflow got started.\"\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>\n\n\n\t\t\t\t<trigger 2>\n\t\t\t\t\t - Node name: Webhook - Approved\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/approved\n\t\t\t\t\t - Test path: /webhook-test/approved\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond immediately with the message \"Workflow got started.\"\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 2>"
+    },
+    {
+      "canonical_repo_filename": "06_case_report.json",
+      "id": "rZa7u65ET6JwkhTp",
+      "name": "#6 ROAR Workflow - Case Report Agent",
+      "active": true,
+      "createdAt": "2026-03-18T09:13:12.115Z",
+      "updatedAt": "2026-03-19T12:47:48.461Z",
+      "versionId": "3b0b1e5e-8e21-4845-9240-a5991a9edb37",
+      "activeVersionId": "3b0b1e5e-8e21-4845-9240-a5991a9edb37",
+      "triggerCount": 1,
+      "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate",
+        "availableInMCP": true
+      },
+      "connections": {
+        "Webhook Trigger": {
+          "main": [
+            [
+              {
+                "node": "Fetch Full Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Full Case": {
+          "main": [
+            [
+              {
+                "node": "Fetch Chat Transcript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Chat Transcript": {
+          "main": [
+            [
+              {
+                "node": "Build Report Prompt",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Report Prompt": {
+          "main": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Basic LLM Chain \u2014 Report": {
+          "main": [
+            [
+              {
+                "node": "Parse + Validate Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse + Validate Report": {
+          "main": [
+            [
+              {
+                "node": "Write Case Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Write Case Report": {
+          "main": [
+            [
+              {
+                "node": "Close Case",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Close Case": {
+          "main": [
+            [
+              {
+                "node": "Post Closure Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model \u2014 Report": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Basic LLM Chain \u2014 Report",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "conversation-closed",
+            "options": {}
+          },
+          "id": "34d53481-cc5c-41b0-be98-e24583978fe9",
+          "name": "Webhook Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            48,
+            -160
+          ],
+          "webhookId": "eefa9395-4267-4b05-bfe2-12e3bee8e3a2"
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "bc9d6c34-a139-4959-bd31-cf9938e50331",
+          "name": "Fetch Full Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            288,
+            -160
+          ]
+        },
+        {
+          "parameters": {
+            "url": "=http://192.168.1.52:8000/cases/{{$json.id}}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODk1MjI5LCJleHAiOjE3NzM5NTI4Mjl9.Y2mPmeQFnfgbItNNN46ZYV2bHJGSSvWosu8aXYJeW64"
+                },
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "9a79b4bd-b277-478e-b46a-25bf0fc8bdd3",
+          "name": "Fetch Chat Transcript",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            528,
+            -160
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\nconst rawMessages = $items('Fetch Chat Transcript')[0]?.json ?? {};\nconst messages = Array.isArray(rawMessages) ? rawMessages : (rawMessages.messages || []);\n\nconst trimmedTranscript = messages.slice(-40);\n\nconst webhookBody = $node['Webhook Trigger']?.json?.body ?? {};\n\nconst user_message = {\n  case: c,\n  transcript: trimmedTranscript,\n  closed_by: webhookBody.closed_by ?? null,\n  close_reason: webhookBody.close_reason ?? null,\n};\n\nreturn [{\n  case_id: c.id || webhookBody.case_id,\n  user_message,\n}];\n"
+          },
+          "id": "c717e4ec-51f9-4ed7-b4f1-d61178136c84",
+          "name": "Build Report Prompt",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            768,
+            -160
+          ]
+        },
+        {
+          "parameters": {
+            "prompt": "=={{ JSON.stringify($json.user_message) }}",
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are ROAR's case report agent. Compile a permanent audit record for a closed case.\n\nYou will receive the full case object and conversation transcript.\n\nGUIDELINES:\n\n- Be thorough and factual --- this is a permanent audit record.\n\n- outcome_summary: 2-3 sentences on what happened and how it resolved.\n\n- Extract actual values from data --- do not paraphrase or generalize.\n\n- Set inapplicable fields to null.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"intent_classification\": \"string\",\n\n\"data_sources_queried\": [\"string\"],\n\n\"policies_applied\": [\"slug\"],\n\n\"slas_applied\": [\"slug\"],\n\n\"triage_decision\": \"autonomous\" | \"escalation\",\n\n\"resolution_path\": \"string\",\n\n\"approval_outcome\": \"approved\" | \"rejected\" | null,\n\n\"rejection_reason\": \"string | null\",\n\n\"resolution_actions\": [\"string\"] | null,\n\n\"outcome_summary\": \"string\",\n\n\"close_reason\": \"string\" }"
+                }
+              ]
+            }
+          },
+          "id": "ab68db54-8a21-4f81-ad7f-b8d90107f94d",
+          "name": "Basic LLM Chain \u2014 Report",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "typeVersion": 1,
+          "position": [
+            960,
+            -224
+          ]
+        },
+        {
+          "parameters": {
+            "model": "gpt-4o-mini",
+            "options": {
+              "maxTokens": 1000,
+              "responseFormat": "json_object",
+              "temperature": 0
+            }
+          },
+          "id": "c135910c-6387-42ae-8544-d9fdfa6396d8",
+          "name": "OpenAI Chat Model \u2014 Report",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "typeVersion": 1,
+          "position": [
+            960,
+            16
+          ],
+          "credentials": {
+            "openAiApi": {
+              "id": "NByBKEvh1nY13B5s",
+              "name": "OpenAi account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\nconst webhookBody = $node['Webhook Trigger']?.json?.body ?? {};\n\nconst coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst asArray = (v, fallback = []) => Array.isArray(v) ? v : fallback;\nconst asObject = (v, fallback = null) =>\n  v && typeof v === 'object' && !Array.isArray(v) ? v : fallback;\n\nlet report;\ntry {\n  if ($json && typeof $json === 'object' && $json.intent_classification !== undefined) {\n    report = $json;\n  } else {\n    const text = coerceToString($json);\n    report = JSON.parse(text);\n  }\n} catch (e) {\n  report = null;\n}\n\nconst hasCoreFields = report &&\n  typeof report.intent_classification === 'string' &&\n  Array.isArray(report.data_sources_queried) &&\n  typeof report.outcome_summary === 'string' &&\n  report.outcome_summary.trim().length > 0;\n\nif (!hasCoreFields) {\n  report = {\n    case_id: c.id || webhookBody.case_id,\n    dispute_type: c.dispute_type || 'unknown',\n    customer_name: c.customer_name || 'Unknown Customer',\n    customer_email: c.customer_email || 'unknown@example.com',\n    order_id: c.order_id || '',\n    intent_classification: c.triage_decision?.intent || 'unknown',\n    data_sources_queried: ['internal'],\n    policies_applied: asArray(c.triage_decision?.policies_applied),\n    slas_applied: asArray(c.triage_decision?.slas_applied),\n    triage_decision: asObject(c.triage_decision, {}),\n    resolution_path: c.resolution_path || 'unknown',\n    approval_outcome: null,\n    rejection_reason: c.rejection_reason || null,\n    resolution_actions: null,\n    outcome_summary: `Case ${c.id || webhookBody.case_id} closed with status ${c.status || 'closed'}.`,\n    close_reason: webhookBody.close_reason || c.close_reason || 'resolved',\n  };\n} else {\n  report = {\n    case_id: c.id || webhookBody.case_id,\n    dispute_type: report.dispute_type ?? c.dispute_type ?? 'unknown',\n    customer_name: report.customer_name ?? c.customer_name ?? 'Unknown Customer',\n    customer_email: report.customer_email ?? c.customer_email ?? 'unknown@example.com',\n    order_id: report.order_id ?? c.order_id ?? '',\n    intent_classification: report.intent_classification,\n    data_sources_queried: asArray(report.data_sources_queried, ['internal']),\n    policies_applied: asArray(report.policies_applied, asArray(c.triage_decision?.policies_applied)),\n    slas_applied: asArray(report.slas_applied, asArray(c.triage_decision?.slas_applied)),\n    triage_decision: asObject(report.triage_decision, asObject(c.triage_decision, {})),\n    resolution_path: report.resolution_path ?? c.resolution_path ?? 'unknown',\n    approval_outcome: report.approval_outcome ?? null,\n    rejection_reason: report.rejection_reason ?? c.rejection_reason ?? null,\n    resolution_actions: asObject(report.resolution_actions, null),\n    outcome_summary: report.outcome_summary,\n    close_reason: report.close_reason ?? webhookBody.close_reason ?? c.close_reason ?? 'resolved',\n  };\n}\n\nreturn [{\n  case_id: c.id || webhookBody.case_id,\n  closed_by: webhookBody.closed_by || null,\n  close_reason: webhookBody.close_reason || null,\n  report,\n}];"
+          },
+          "id": "9822f006-8a33-4d57-8ded-1aa22e285c15",
+          "name": "Parse + Validate Report",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1248,
+            -160
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}/report",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "X-Webhook-Secret",
+                  "value": "dev-webhook-secret-change-in-production"
+                }
+              ]
+            },
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "case_id",
+                  "value": "={{ $json.report.case_id }}"
+                },
+                {
+                  "name": "dispute_type",
+                  "value": "={{ $json.report.dispute_type }}"
+                },
+                {
+                  "name": "customer_name",
+                  "value": "={{ $json.report.customer_name }}"
+                },
+                {
+                  "name": "customer_email",
+                  "value": "={{ $json.report.customer_email }}"
+                },
+                {
+                  "name": "order_id",
+                  "value": "={{ $json.report.order_id }}"
+                },
+                {
+                  "name": "intent_classification",
+                  "value": "={{ $json.report.intent_classification }}"
+                },
+                {
+                  "name": "data_sources_queried",
+                  "value": "={{ $json.report.data_sources_queried }}"
+                },
+                {
+                  "name": "policies_applied",
+                  "value": "={{ $json.report.policies_applied }}"
+                },
+                {
+                  "name": "slas_applied",
+                  "value": "={{ $json.report.slas_applied }}"
+                },
+                {
+                  "name": "triage_decision",
+                  "value": "={{ $json.report.triage_decision }}"
+                },
+                {
+                  "name": "resolution_path",
+                  "value": "={{ $json.report.resolution_path }}"
+                },
+                {
+                  "name": "approval_outcome",
+                  "value": "={{ $json.report.approval_outcome }}"
+                },
+                {
+                  "name": "rejection_reason",
+                  "value": "={{ $json.report.rejection_reason }}"
+                },
+                {
+                  "name": "resolution_actions",
+                  "value": "={{ $json.report.resolution_actions }}"
+                },
+                {
+                  "name": "outcome_summary",
+                  "value": "={{ $json.report.outcome_summary }}"
+                },
+                {
+                  "name": "close_reason",
+                  "value": "={{ $json.report.close_reason }}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "a83bba68-38a8-420c-a1d9-d28e9aaf41b7",
+          "name": "Write Case Report",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1488,
+            -160
+          ],
+          "onError": "continueRegularOutput"
+        },
+        {
+          "parameters": {
+            "method": "PATCH",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"status\": \"closed\",\n  \"closed_by\": $json.closed_by,\n  \"close_reason\": $json.close_reason,\n  \"closed_at\": new Date().toISOString()\n}",
+            "options": {}
+          },
+          "id": "8b9cbfb2-6649-4980-a8c8-eff0d4f7d4fa",
+          "name": "Close Case",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1696,
+            144
+          ],
+          "disabled": true
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}/messages",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczODEwMTgxLCJleHAiOjE3NzY0MzA5ODF9.SMeqiCOanRtx7eNmCFZmP_jbWTZExxf4Vd1YFCkYYdA"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={\n  \"content\": \"This conversation has been closed. A full case summary has been generated for your records. Thank you.\",\n  \"sender_type\": \"system\"\n}",
+            "options": {}
+          },
+          "id": "989b0fdc-0597-4bc8-8c37-c11be8a1b36a",
+          "name": "Post Closure Message",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4,
+          "position": [
+            1888,
+            144
+          ],
+          "disabled": true
+        }
+      ],
+      "triggerInfo": "This workflow has the following trigger(s):\n\n\nWebhook trigger(s):\n\n\n\t\t\t\t<trigger 1>\n\t\t\t\t\t - Node name: Webhook Trigger\n\t\t\t\t\t - Base URL: http://localhost:5678/\n\t\t\t\t\t - Production path: /webhook/conversation-closed\n\t\t\t\t\t - Test path: /webhook-test/conversation-closed\n\t\t\t\t\t - HTTP Method: POST\n\t\t\t\t\t - Response Mode: Webhook is configured to respond immediately with the message \"Workflow got started.\"\n\t\t\t\t\t - No credentials required for this webhook.\n\t\t\t\t</trigger 1>"
+    }
+  ]
+}
