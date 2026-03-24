@@ -35,14 +35,14 @@ goto :eof
 :start_postgres
 echo.
 echo [1/4] Checking Postgres container...
-docker ps --format "{{.Names}}" | findstr /I /X "roar-postgres" >nul
+call :is_container_running "roar-postgres"
 if not errorlevel 1 (
   echo [OK] Postgres is already running.
   call :wait_for_port 5432 "Postgres"
   goto :eof
 )
 
-docker ps -a --format "{{.Names}}" | findstr /I /X "roar-postgres" >nul
+call :container_exists "roar-postgres"
 if errorlevel 1 (
   echo [WARN] No "roar-postgres" container found, so DB startup is being skipped.
   goto :eof
@@ -68,17 +68,32 @@ if not errorlevel 1 (
   goto :eof
 )
 
-docker ps -a --format "{{.Names}}" | findstr /I /X "roar-n8n" >nul
+call :is_container_running "roar-n8n"
+if not errorlevel 1 (
+  echo [INFO] Existing n8n container "roar-n8n" is already running.
+  call :wait_for_http "http://127.0.0.1:5678" "n8n"
+  goto :eof
+)
+
+call :container_exists "roar-n8n"
 if not errorlevel 1 (
   echo [INFO] Starting existing n8n container "roar-n8n"...
-  start "ROAR n8n" cmd /k "docker start -ai roar-n8n"
+  docker start roar-n8n >nul
+  if errorlevel 1 (
+    echo [WARN] Failed to start "roar-n8n". Continuing with the remaining services.
+    goto :eof
+  )
   set "STARTED_N8N=1"
   call :wait_for_http "http://127.0.0.1:5678" "n8n"
   goto :eof
 )
 
 echo [INFO] Creating and launching persistent n8n container "roar-n8n"...
-start "ROAR n8n" cmd /k "docker run -it --name roar-n8n -p 5678:5678 -v ""%USERPROFILE%\.n8n:/home/node/.n8n"" n8nio/n8n"
+docker run -d --name roar-n8n -p 5678:5678 -v "%USERPROFILE%\.n8n:/home/node/.n8n" n8nio/n8n >nul
+if errorlevel 1 (
+  echo [WARN] Failed to create "roar-n8n". Continuing with the remaining services.
+  goto :eof
+)
 set "STARTED_N8N=1"
 call :wait_for_http "http://127.0.0.1:5678" "n8n"
 goto :eof
@@ -156,4 +171,12 @@ goto :eof
 
 :http_ready
 powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%~1' -UseBasicParsing -TimeoutSec 2 | Out-Null; exit 0 } catch { if ($_.Exception.Response) { exit 0 } else { exit 1 } }" >nul 2>&1
+exit /b %errorlevel%
+
+:container_exists
+docker inspect "%~1" >nul 2>&1
+exit /b %errorlevel%
+
+:is_container_running
+docker inspect -f "{{.State.Running}}" "%~1" 2>nul | findstr /I /X "true" >nul
 exit /b %errorlevel%
