@@ -1,0 +1,1 @@
+export { default } from '../(agent)/policies/page';

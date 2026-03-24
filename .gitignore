@@ -1,7 +1,9 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 web/.next/
 web/out/
+web/.dev*.log
+web/.verify*.log
 
 # Python
 api/venv/
