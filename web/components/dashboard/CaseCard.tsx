@@ -31,6 +31,15 @@ function timeInQueue(createdAt: string) {
   return `${days}d`;
 }
 
+function formatCreated(createdAt: string) {
+  return new Date(createdAt).toLocaleString('en-TH', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function CaseCard({
   variant,
   c,
@@ -44,19 +53,37 @@ export function CaseCard({
     <Link
       href={href}
       className={clsx(
-        'block rounded-card border border-border-default bg-bg-surface p-5 transition duration-instant',
-        'hover:border-border-focus hover:bg-primary-subtle'
+        'group block rounded-card border border-border-default bg-bg-surface p-4 transition duration-instant',
+        'hover:border-border-focus hover:bg-bg-elevated'
       )}
     >
-      <div className="flex items-start justify-between">
-        <DisputeTypeBadge disputeType={c.dispute_type} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[16px] font-semibold text-text-primary">{c.customer_name}</div>
+          <div className="mt-1 font-mono text-[12px] text-text-secondary">{c.reference_number}</div>
+        </div>
         <CaseStatusPill status={c.status} />
       </div>
 
-      <div className="mt-4 font-mono text-[12px] text-text-secondary">{c.reference_number}</div>
-      <div className="mt-2 text-[17px] font-semibold text-text-primary">{c.customer_name}</div>
-      <div className="mt-1 text-[13px] text-text-secondary">Order {c.order_id}</div>
-      <div className="mt-3 text-[11px] text-text-muted">Time in queue: {timeInQueue(c.created_at)}</div>
+      <div className="mt-4 grid grid-cols-2 gap-3 text-[12px]">
+        <div className="rounded-btn bg-bg-sunken px-3 py-2">
+          <div className="text-text-muted">Order</div>
+          <div className="mt-1 font-mono text-text-secondary">{c.order_id}</div>
+        </div>
+        <div className="rounded-btn bg-bg-sunken px-3 py-2">
+          <div className="text-text-muted">In queue</div>
+          <div className="mt-1 font-semibold text-text-secondary">{timeInQueue(c.created_at)}</div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <DisputeTypeBadge disputeType={c.dispute_type} />
+        <div className="text-[11px] text-text-muted">Opened {formatCreated(c.created_at)}</div>
+      </div>
+
+      <div className="mt-3 text-[13px] font-medium text-primary transition-colors group-hover:text-primary-hover">
+        {variant === 'approval' ? 'Review case ->' : 'Open case ->'}
+      </div>
     </Link>
   );
 }

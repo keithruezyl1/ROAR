@@ -3,7 +3,6 @@
 import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { NotificationBadge } from '@/components/shared/NotificationBadge';
 import { api } from '@/lib/api';
 import { SearchFilterBar, type Filters } from '@/components/dashboard/SearchFilterBar';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
@@ -17,6 +16,15 @@ type Case = {
   order_id: string;
   created_at: string;
 };
+
+function LiveMeta() {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-[12px] text-text-secondary">
+      <span className="h-2 w-2 rounded-pill bg-success animate-pulse" aria-hidden />
+      <span>Live</span>
+    </div>
+  );
+}
 
 export default function EscalationDashboardPage() {
   const [cases, setCases] = React.useState<Case[]>([]);
@@ -48,14 +56,7 @@ export default function EscalationDashboardPage() {
   }, [load]);
 
   return (
-    <AppShell role="escalation" title="Escalation Queue">
-      <div className="flex items-center justify-between">
-        <div className="relative text-[24px] font-bold">
-          Escalation Queue
-          <NotificationBadge count={cases.length} />
-        </div>
-      </div>
-
+    <AppShell role="escalation" title="Escalation Queue" titleMeta={<LiveMeta />}>
       <SearchFilterBar
         value={filters}
         onChange={setFilters}

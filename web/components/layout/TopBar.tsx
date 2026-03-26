@@ -1,22 +1,20 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
+import Image from 'next/image';
 
 import { DarkModeToggle } from '../shared/DarkModeToggle';
-import { Button } from '../shared/Button';
 import { decodeJwtPayload } from '@/lib/jwt';
-import { RoleBadge } from './RoleBadge';
 
 export function TopBar({
   role,
   title,
+  titleMeta,
 }: {
   role: 'approver' | 'escalation';
   title: string;
+  titleMeta?: React.ReactNode;
 }) {
-  const router = useRouter();
   const [fullName, setFullName] = React.useState<string>('');
 
   React.useEffect(() => {
@@ -26,26 +24,38 @@ export function TopBar({
     if (payload?.full_name) setFullName(payload.full_name);
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('roar_token');
-    Cookies.remove('roar_token', { path: '/' });
-    router.push('/login');
-  };
-
   return (
     <header className="flex h-14 items-center justify-between border-b border-border-default bg-bg-surface px-6">
       <div className="flex items-center gap-3">
         <div className="text-[24px] font-bold leading-none">{title}</div>
-        <RoleBadge role={role} />
+        {titleMeta ?? null}
       </div>
+
       <div className="flex items-center gap-3">
-        <div className="text-[13px] text-text-secondary">{fullName}</div>
+        {fullName ? (
+          <div className="flex items-center gap-2">
+            {role === 'approver' ? (
+              <Image
+                src="/approverpfp.png"
+                alt="Approver profile"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] rounded-pill object-cover"
+              />
+            ) : (
+              <Image
+                src="/escalationpfp.png"
+                alt="Escalation profile"
+                width={26}
+                height={26}
+                className="h-[26px] w-[26px] rounded-pill object-cover"
+              />
+            )}
+            <div className="text-[13px] text-text-secondary">{fullName}</div>
+          </div>
+        ) : null}
         <DarkModeToggle />
-        <Button variant="secondary" size="sm" onClick={logout}>
-          Logout
-        </Button>
       </div>
     </header>
   );
 }
-

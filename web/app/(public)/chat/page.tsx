@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { IntakeForm } from '@/components/chat/IntakeForm';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { DarkModeToggle } from '@/components/shared/DarkModeToggle';
@@ -118,9 +119,7 @@ function ChatPageContent() {
     <div className="min-h-screen bg-bg-base text-text-primary">
       <div className="flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-btn bg-primary text-text-inverse font-bold">
-            R
-          </div>
+          <Image src="/roar-logo.png" alt="ROAR logo" width={36} height={36} className="h-9 w-9 rounded-btn object-cover" />
           <div>
             <div className="text-[15px] font-semibold">ROAR Engine</div>
             <div className="text-[13px] text-text-muted">Customer Chat</div>
@@ -218,4 +217,7 @@ export default function ChatPage() {
     </React.Suspense>
   );
 }
+
+
+
 

@@ -2,6 +2,15 @@ import { EmptyState } from '@/components/shared/EmptyState';
 
 import { CaseCard, type CaseCardModel, type CaseCardVariant } from './CaseCard';
 
+function EmptyQueueIcon() {
+  return (
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden>
+      <rect x="10" y="8" width="36" height="40" rx="9" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M18 20h20M18 28h20M18 36h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function DashboardGrid({
   variant,
   cases,
@@ -16,7 +25,7 @@ export function DashboardGrid({
   if (cases.length === 0) {
     return (
       <EmptyState
-        icon={<span className="text-[24px]">No cases</span>}
+        icon={<EmptyQueueIcon />}
         title={emptyTitle}
         description={emptyDescription}
       />
@@ -24,7 +33,7 @@ export function DashboardGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
       {cases.map((c) => (
         <CaseCard key={c.id} variant={variant} c={c} />
       ))}

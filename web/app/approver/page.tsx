@@ -17,6 +17,15 @@ type Case = {
   created_at: string;
 };
 
+function LiveQueueMeta() {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-pill border border-border-default bg-bg-surface px-2.5 py-1 text-[12px] text-text-secondary">
+      <span className="h-2 w-2 rounded-pill bg-success animate-pulse" aria-hidden />
+      <span>Live</span>
+    </div>
+  );
+}
+
 export default function ApproverDashboardPage() {
   const [cases, setCases] = React.useState<Case[]>([]);
   const [filters, setFilters] = React.useState<Filters>({
@@ -47,10 +56,11 @@ export default function ApproverDashboardPage() {
   }, [load]);
 
   return (
-    <AppShell role="approver" title="Approval Queue">
+    <AppShell role="approver" title="Cases Queue" titleMeta={<LiveQueueMeta />}>
       <SearchFilterBar
         value={filters}
         onChange={setFilters}
+        resultsCount={cases.length}
         statusOptions={[
           { value: 'awaiting_approval', label: 'Awaiting approval' },
           { value: 'approved_executing', label: 'Approved' },
@@ -69,3 +79,4 @@ export default function ApproverDashboardPage() {
     </AppShell>
   );
 }
+

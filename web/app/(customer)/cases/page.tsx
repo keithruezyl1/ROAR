@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import { customerApi } from '@/lib/api';
 import { CaseStatusPill } from '@/components/dashboard/CaseStatusPill';
@@ -9,7 +10,8 @@ import { DisputeTypeBadge } from '@/components/dashboard/DisputeTypeBadge';
 import { Button } from '@/components/shared/Button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { DarkModeToggle } from '@/components/shared/DarkModeToggle';
-import { logout } from '@/lib/auth';
+import { Modal } from '@/components/shared/Modal';
+import { decodeToken, logout } from '@/lib/auth';
 import type { CaseStatus, DisputeType } from '@/types';
 
 type CustomerCase = {
@@ -52,9 +54,26 @@ function EmptyIllustration() {
   );
 }
 
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+      <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function CustomerCasesPage() {
   const [cases, setCases] = React.useState<CustomerCase[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [logoutOpen, setLogoutOpen] = React.useState(false);
+
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+
+  const fullName = React.useMemo(() => {
+    const payload = decodeToken();
+    return payload?.full_name ?? 'Customer';
+  }, []);
 
   const loadCases = React.useCallback(async () => {
     try {
@@ -71,21 +90,59 @@ export default function CustomerCasesPage() {
     return () => window.clearInterval(intervalId);
   }, [loadCases]);
 
+  React.useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
       <div className="border-b border-border-default bg-bg-surface">
         <div className="mx-auto flex max-w-[980px] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-btn bg-primary text-text-inverse font-bold">
-              R
+            <Image src="/roar-logo.png" alt="ROAR logo" width={36} height={36} className="h-9 w-9 rounded-btn object-cover" />
+            <div>
+              <div className="text-[15px] font-semibold">ROAR Engine</div>
+              <div className="-mt-0.5 text-[13px] leading-none text-text-muted">Customer Dashboard</div>
             </div>
-            <div className="text-[15px] font-semibold">ROAR Engine</div>
           </div>
+
           <div className="flex items-center gap-3">
             <DarkModeToggle />
-            <Button variant="ghost" size="sm" onClick={logout}>
-              Logout
-            </Button>
+
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                className="inline-flex h-9 items-center gap-2 rounded-pill border border-border-default bg-bg-elevated px-2 pr-3 text-[13px] font-medium text-text-secondary transition-colors hover:bg-bg-sunken"
+              >
+                <Image src="/customerpfp.jpg" alt="Customer profile" width={22} height={22} className="h-[22px] w-[22px] rounded-pill object-cover" />
+                <span>{fullName}</span>
+                <ChevronDownIcon />
+              </button>
+
+              {menuOpen ? (
+                <div className="absolute right-0 z-30 mt-2 w-[160px] rounded-btn border border-border-default bg-bg-elevated p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setLogoutOpen(true);
+                    }}
+                    className="w-full rounded-btn px-3 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-bg-sunken hover:text-text-primary"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -96,7 +153,7 @@ export default function CustomerCasesPage() {
             <h1 className="text-[28px] font-bold text-text-primary">My Cases</h1>
           </div>
           <Link href="/chat">
-            <Button>Start New Dispute</Button>
+            <Button>+ New Dispute</Button>
           </Link>
         </div>
 
@@ -142,6 +199,26 @@ export default function CustomerCasesPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        title="Log out now?"
+      >
+        <div className="flex flex-col gap-5">
+          <p className="text-[14px] text-text-secondary">
+            You will be signed out of ROAR Engine. You can log back in any time.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setLogoutOpen(false)}>
+              Go back
+            </Button>
+            <Button variant="primary" onClick={logout}>
+              Yes, log out
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

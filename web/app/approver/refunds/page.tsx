@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
@@ -19,14 +19,45 @@ type RefundRequest = {
   created_at: string;
 };
 
+function statusBadgeClass(status: string) {
+  const normalized = status.toLowerCase().replaceAll('-', '_').replaceAll(' ', '_');
+  if (normalized === 'closed' || normalized === 'resolved') {
+    return 'border border-success bg-success-bg text-success';
+  }
+  if (normalized === 'awaiting_approval' || normalized === 'pending_approval') {
+    return 'border border-warning bg-warning-bg text-warning';
+  }
+  if (normalized === 'rejected_human_required' || normalized === 'escalated_human_required') {
+    return 'border border-info bg-info-bg text-info';
+  }
+  return 'border border-border-default bg-bg-sunken text-text-secondary';
+}
+
+function formatStatusLabel(status: string) {
+  return status.replaceAll('_', ' ').replaceAll('-', ' ');
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('en-TH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString('en-TH', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function HistoryPage() {
   const [items, setItems] = React.useState<RefundRequest[]>([]);
   const [loadingId, setLoadingId] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
-    const res = await api.get<{ refund_requests: RefundRequest[] }>(
-      `/refund_requests?status=pending`
-    );
+    const res = await api.get<{ refund_requests: RefundRequest[] }>(`/refund_requests?status=pending`);
     setItems(res.refund_requests ?? []);
   }, []);
 
@@ -48,64 +79,84 @@ export default function HistoryPage() {
 
   return (
     <AppShell role="approver" title="History">
-      <div className="flex items-center justify-between">
-        <div className="text-[24px] font-bold">History</div>
+      <div className="mb-4 rounded-card border border-border-default bg-bg-surface px-4 py-3 text-[13px] text-text-secondary">
+        Review previously submitted refund requests and open the linked customer chat when context is needed.
       </div>
 
-      <div className="mt-6">
-        {items.length === 0 ? (
-          <div className="rounded-card border border-border-default bg-bg-surface p-8 text-center">
-            <div className="text-[16px] font-semibold">No pending requests</div>
-            <div className="mt-1 text-[13px] text-text-muted">
-              Refund requests waiting for approval will appear here.
-            </div>
+      {items.length === 0 ? (
+        <div className="rounded-card border border-border-default bg-bg-surface p-8 text-center">
+          <div className="text-[16px] font-semibold">No pending requests</div>
+          <div className="mt-1 text-[13px] text-text-muted">
+            Refund requests waiting for approval will appear here.
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {items.map((r) => (
-              <div
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {items.map((r) => {
+            const normalizedCaseStatus = (r.case_status ?? '')
+              .toLowerCase()
+              .replaceAll('-', '_')
+              .replaceAll(' ', '_');
+            const canApprove =
+              normalizedCaseStatus === 'awaiting_approval' ||
+              normalizedCaseStatus === 'pending_approval';
+
+            return (
+              <article
                 key={r.id}
-                className="rounded-card border border-border-default bg-bg-surface p-4"
+                className="rounded-card border border-border-default bg-bg-surface p-4 transition-colors hover:border-border-focus"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-mono text-[12px] text-text-secondary">
-                        {r.case_reference_number}
-                      </div>
-                      <div className="font-mono text-[12px] text-text-muted">{r.order_id}</div>
-                      <div className="text-[12px] text-text-muted">THB {r.amount.toFixed(2)}</div>
-                      <div className="text-[12px] text-text-muted">status: {r.case_status}</div>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="font-mono text-[13px] font-semibold text-text-primary">{r.case_reference_number}</span>
+                      <span className={`rounded-pill px-2.5 py-[3px] text-[11px] font-semibold capitalize ${statusBadgeClass(r.case_status)}`}>
+                        {formatStatusLabel(r.case_status)}
+                      </span>
                     </div>
-                    <div className="mt-2 line-clamp-2 text-[13px] text-text-secondary">
-                      {r.reason}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+                      <span className="rounded-btn border border-border-default bg-bg-elevated px-2.5 py-1 text-text-secondary">
+                        <span className="mr-1 text-text-muted">Date</span>
+                        <span className="font-semibold text-text-primary">{formatDate(r.created_at)}</span>
+                      </span>
+                      <span className="rounded-btn border border-border-default bg-bg-elevated px-2.5 py-1 text-text-secondary">
+                        <span className="mr-1 text-text-muted">Time</span>
+                        <span className="font-semibold text-text-primary">{formatTime(r.created_at)}</span>
+                      </span>
+                      <span className="rounded-btn border border-border-default bg-bg-elevated px-2.5 py-1 text-text-secondary">
+                        <span className="mr-1 text-text-muted">Order</span>
+                        <span className="font-mono font-semibold text-text-primary">{r.order_id}</span>
+                      </span>
+                      <span className="rounded-btn border border-border-default bg-bg-elevated px-2.5 py-1 text-text-secondary">
+                        <span className="mr-1 text-text-muted">Amount</span>
+                        <span className="font-semibold text-text-primary">THB {r.amount.toFixed(2)}</span>
+                      </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-3 text-[12px] text-text-muted">
-                      <span className="font-mono">refund_request: {r.id}</span>
-                      <Link
-                        href={`/approver/${r.case_id}/chat`}
-                        className="hover:underline"
-                      >
+
+                    <div className="mt-3">
+                      <Link href={`/approver/${r.case_id}/chat`} className="text-[13px] font-medium text-primary hover:underline">
                         Open chat
                       </Link>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  {canApprove ? (
                     <Button
                       variant="primary"
                       loading={loadingId === r.id}
                       onClick={() => void approve(r.id)}
+                      className="shrink-0"
                     >
                       Approve
                     </Button>
-                  </div>
+                  ) : null}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </AppShell>
   );
 }
