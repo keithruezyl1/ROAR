@@ -5,68 +5,100 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { ChatWindow } from '@/components/chat/ChatWindow';
+import { EscalationWorkPanel, type EscalationCaseData } from '@/components/escalation/EscalationWorkPanel';
 import { api } from '@/lib/api';
-import { InfoBundlePanel } from '@/components/dashboard/InfoBundlePanel';
-import { EscalationSummaryPanel } from '@/components/dashboard/EscalationSummaryPanel';
-import { Button } from '@/components/shared/Button';
-import { decodeJwtPayload } from '@/lib/jwt';
-
-type InformationBundle = {
-  order?: { order_id: string; status: string; total_amount: number | string } | null;
-  order_items?: Array<{ item_id: string; item_name: string; quantity: number }>;
-  transaction?: { status: string; amount: number | string; payment_method: string } | null;
-  refund_records?: Array<Record<string, unknown>>;
-  shipment?: {
-    carrier: string;
-    tracking_number: string;
-    status: string;
-    estimated_delivery: string;
-  } | null;
-  stock_records?: Array<{
-    item_id: string;
-    quantity_available: number | string;
-    warehouse_location: string;
-  }>;
-};
-
-type EscalationSummary = {
-  summary?: string;
-  summary_paragraph?: string;
-  key_facts?: string[];
-  facts?: string[];
-  escalation_reason?: string;
-  recommended_action?: string;
-};
-
-type CaseDetail = {
-  reference_number: string;
-  information_bundle: InformationBundle | null;
-  escalation_summary: EscalationSummary | string | null;
-};
+import { decodeToken } from '@/lib/auth';
+import type { Case, CloseReason } from '@/types';
 
 export default function EscalationCasePage({ params }: { params: { caseId: string } }) {
   const router = useRouter();
   const caseId = params.caseId;
-  const [data, setData] = React.useState<CaseDetail | null>(null);
+  const [caseData, setCaseData] = React.useState<Case | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [blocked, setBlocked] = React.useState(false);
 
-  React.useEffect(() => {
-    void api.get<CaseDetail>(`/cases/${caseId}`).then(setData);
+  const loadCase = React.useCallback(async () => {
+    const data = await api.get<Case>(`/cases/${caseId}`);
+    setCaseData(data);
+    return data;
   }, [caseId]);
 
-  const joinChat = async () => {
-    const token = localStorage.getItem('roar_token');
-    const payload = token ? decodeJwtPayload(token) : null;
-    if (!payload?.sub) return;
+  React.useEffect(() => {
+    let cancelled = false;
 
-    await api.patch<unknown>(`/cases/${caseId}`, { assigned_to: payload.sub });
-    await api.post<unknown>(`/cases/${caseId}/messages`, {
-      sender_type: 'agent',
-      content: `Agent ${payload.full_name} has joined.`,
+    const claimAndLoad = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setBlocked(false);
+
+        const payload = decodeToken();
+        if (!payload?.sub) {
+          router.replace('/login');
+          return;
+        }
+
+        const current = await api.get<Case>(`/cases/${caseId}`);
+        if (cancelled) return;
+
+        if (current.assigned_to && current.assigned_to !== payload.sub) {
+          setCaseData(current);
+          setBlocked(true);
+          return;
+        }
+
+        if (current.status === 'escalated_human_required') {
+          const claimed = await api.post<Case>(`/cases/${caseId}/claim`);
+          if (cancelled) return;
+          setCaseData(claimed);
+        } else {
+          setCaseData(current);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to load escalation case.';
+        if (!cancelled) {
+          setError(message);
+          setBlocked(message.includes('already claimed') || message.includes('handled by another agent'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void claimAndLoad();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, router]);
+
+  const handleClose = React.useCallback(async (reason: CloseReason) => {
+    await api.post<unknown>(`/cases/${caseId}/close`, {
+      closed_by: 'agent',
+      close_reason: reason,
     });
-    router.push(`/escalation/${caseId}/chat`);
-  };
+    router.push('/escalation');
+  }, [caseId, router]);
 
-  const referenceNumber = data?.reference_number ?? 'CASE-';
+  const refreshCase = React.useCallback(async () => {
+    await loadCase();
+  }, [loadCase]);
+
+  const referenceNumber = caseData?.reference_number ?? 'Case';
+  const workPanelData: EscalationCaseData | null = caseData ? {
+    reference_number: caseData.reference_number,
+    dispute_type: caseData.dispute_type,
+    status: caseData.status,
+    order_id: caseData.order_id,
+    customer_name: caseData.customer_name,
+    customer_email: caseData.customer_email,
+    information_bundle: caseData.information_bundle,
+    triage_decision: caseData.triage_decision,
+    escalation_summary: caseData.escalation_summary,
+  } : null;
 
   return (
     <AppShell role="escalation" title={referenceNumber}>
@@ -77,28 +109,43 @@ export default function EscalationCasePage({ params }: { params: { caseId: strin
         <span className="text-text-muted">&gt;</span> {referenceNumber}
       </div>
 
-      {data ? (
-        <div className="flex flex-col gap-6">
-          <EscalationSummaryPanel summary={safeParseSummary(data.escalation_summary)} />
-          <InfoBundlePanel bundle={data.information_bundle} />
-          <div>
-            <Button onClick={() => void joinChat()}>Join Chat</Button>
+      {loading ? (
+        <div className="text-[13px] text-text-muted">Loading case...</div>
+      ) : error && !caseData ? (
+        <div className="rounded-card border border-danger bg-danger-bg px-5 py-4 text-[13px] text-danger">{error}</div>
+      ) : blocked ? (
+        <div className="rounded-card border border-border-default bg-bg-surface p-6">
+          <div className="text-[18px] font-semibold text-text-primary">Case unavailable</div>
+          <div className="mt-2 text-[14px] text-text-secondary">
+            This escalation case is already being handled by another agent.
+          </div>
+          <div className="mt-4">
+            <Link href="/escalation">
+              <span className="text-[14px] font-medium text-primary hover:underline">Return to dashboard</span>
+            </Link>
           </div>
         </div>
-      ) : (
-        <div className="text-[13px] text-text-muted">Loading...</div>
-      )}
+      ) : caseData && workPanelData ? (
+        <div className="flex h-[calc(100vh-180px)] min-h-[620px] gap-6">
+          <div className="w-3/5 overflow-hidden">
+            <ChatWindow
+              caseId={caseId}
+              mode="agent"
+              caseStatus={caseData.status}
+              disputeType={caseData.dispute_type}
+            />
+          </div>
+          <div className="w-2/5 min-w-[360px] overflow-hidden max-xl:w-[400px]">
+            <EscalationWorkPanel
+              caseId={caseId}
+              caseData={workPanelData}
+              onClose={handleClose}
+              onActionSuccess={refreshCase}
+            />
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }
 
-function safeParseSummary(value: EscalationSummary | string | null): EscalationSummary | null {
-  if (!value) return null;
-  if (typeof value === 'object') return value;
-
-  try {
-    return JSON.parse(value) as EscalationSummary;
-  } catch {
-    return null;
-  }
-}

@@ -108,7 +108,8 @@ if not errorlevel 1 (
 )
 
 echo [INFO] Launching FastAPI in a new window...
-start "ROAR API" cmd /k "cd /d ""%REPO_DIR%"" && python -m uvicorn api.main:app --reload --port 8000"
+REM Bind to 0.0.0.0 so n8n (running in Docker) can reach FastAPI via the host LAN IP.
+start "ROAR API" cmd /k "cd /d ""%REPO_DIR%"" && python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000"
 set "STARTED_BACKEND=1"
 call :wait_for_http "http://127.0.0.1:8000/docs" "FastAPI"
 goto :eof

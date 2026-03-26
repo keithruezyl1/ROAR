@@ -1,4 +1,4 @@
-"""Case CRUD and approval routes."""
+﻿"""Case CRUD and approval routes."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.middleware import get_current_user, get_current_user_optional, require_agent, require_approver, require_customer
 from api.db.database import get_db
-from api.db.models import Case, Policy
+from api.db.models import Case, ChatMessage, Policy, RefundRequest
 from api.services.cases import generate_reference_number, validate_status_transition
 from api.services.n8n import trigger_workflow
 
@@ -253,6 +253,7 @@ async def patch_case(
     if case.status == "closed":
         raise HTTPException(status_code=422, detail="Case is closed")
 
+    prev_status = case.status
     data = payload.model_dump(exclude_unset=True)
 
     if "status" in data and data["status"] is not None:
@@ -274,6 +275,63 @@ async def patch_case(
             setattr(case, field, value)
 
     case.updated_at = datetime.now(timezone.utc)
+
+    # Auto-create a pending refund_request when workflows move a refund case into awaiting_approval.
+    # This ensures customers are notified immediately with a Refund Request ID, even if the workflow only
+    # patches the case record and does not call /refund_requests.
+    try:
+        if prev_status != "awaiting_approval" and case.status == "awaiting_approval" and case.dispute_type == "refund":
+            existing_rr = await db.execute(
+                select(RefundRequest.id)
+                .where(RefundRequest.case_id == case.id)
+                .where(RefundRequest.status != "failed")
+                .limit(1)
+            )
+            if existing_rr.scalar_one_or_none() is None:
+                plan = case.resolution_plan or {}
+                raw_amount = None
+                if isinstance(plan, dict):
+                    raw_amount = plan.get("amount")
+                if raw_amount is None:
+                    bundle = case.information_bundle or {}
+                    txn = bundle.get("transaction") if isinstance(bundle, dict) else None
+                    if isinstance(txn, dict):
+                        raw_amount = txn.get("amount")
+
+                amount = float(raw_amount) if raw_amount is not None else 0.0
+
+                resolution_type = None
+                if isinstance(plan, dict):
+                    resolution_type = plan.get("resolution_type")
+                resolution_type = str(resolution_type or "refund")
+                reason = f"Workflow plan: {resolution_type}"
+
+                rr = RefundRequest(
+                    case_id=case.id,
+                    order_id=case.order_id,
+                    amount=amount,
+                    reason=reason,
+                    status="pending",
+                )
+                db.add(rr)
+                await db.flush()  # populate rr.id
+
+                msg = (
+                    f"A refund request has been created for your case (Refund Request ID: {rr.id}, Amount: THB {amount:.2f}). "
+                    "Please wait while it is reviewed for approval."
+                )
+                db.add(
+                    ChatMessage(
+                        case_id=case.id,
+                        sender_type="system",
+                        sender_id=None,
+                        content=msg,
+                        metadata_=None,
+                    )
+                )
+    except Exception:
+        # Never fail workflow patch calls due to notification bookkeeping.
+        pass
 
     await db.commit()
     await db.refresh(case)
@@ -297,6 +355,7 @@ async def approve_case(
 
     case.status = "approved_executing"
     case.updated_at = datetime.now(timezone.utc)
+
     await db.commit()
 
     # Frontend never calls n8n directly. The canonical architecture is:

@@ -1,4 +1,14 @@
-﻿// Case status enum
+export type IntakeReason =
+  | 'charged_but_received_nothing'
+  | 'wrong_item'
+  | 'damaged_item'
+  | 'partial_order'
+  | 'late_or_missing_delivery'
+  | 'return_for_refund'
+  | 'other_refund'
+  | 'other_delivery';
+
+// Case status enum
 export type CaseStatus =
   | 'pending_triage'
   | 'awaiting_approval'
@@ -129,7 +139,6 @@ export interface CaseReport {
   close_reason: string;
   generated_at: string;
 }
-
 
 export interface CustomerOrder {
   order_id: string;

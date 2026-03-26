@@ -6,11 +6,11 @@ import clsx from 'clsx';
 
 export function Sidebar({ role }: { role: 'approver' | 'escalation' }) {
   const pathname = usePathname();
-
   const links =
     role === 'approver'
       ? [
           { href: '/approver', label: 'Dashboard' },
+          { href: '/approver/refunds', label: 'History' },
           { href: '/policies', label: 'Policies' },
         ]
       : [

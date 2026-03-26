@@ -363,12 +363,61 @@ These endpoints are called by n8n WF2 (Data Retrieval Agent) instead of querying
 |                                                                                                                                 |
 | Validates: agent must provide close_reason. Customer close_reason is null.                                                      |
 
-### 4.5 Case Reports
+### 4.5 Resolution Records (Refund/Return)
+**POST /cases/:id/claim**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| escalation JWT | none | 200: claimed (idempotent if already owned), 409: already claimed by another agent |
+
+**GET /cases/:id/refund_requests**
+
+| Auth | Response |
+| --- | --- |
+| approver/escalation JWT | { refund_requests: [ ... ] } (escalation agents only see records for their assigned cases) |
+
+**GET /cases/:id/return_requests**
+
+| Auth | Response |
+| --- | --- |
+| approver/escalation JWT | { return_requests: [ ... ] } (escalation agents only see records for their assigned cases) |
+
+**POST /refund_requests**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| agent JWT (WF5-safe) | { case_id, order_id, amount, reason, status? } | 201: refund_request created + persisted chat notification |
+
+**POST /return_requests**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| agent JWT (WF5-safe) | { case_id, order_id, item_ids[], return_reason, status? } | 201: return_request created + persisted chat notification |
+
+**POST /cases/:id/deny-refund**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| escalation JWT | { reason, policy_slug? } | 200: persisted agent chat message (no refund_request record created) |
+
+**POST /cases/:id/mark-duplicate-refund**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| escalation JWT | none | 200: persisted chat message (no refund_request record created) |
+
+**PATCH /return_requests/:id**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| escalation JWT | { status: 'approved'|'rejected', reason? } | 200: return_request status updated + persisted chat notification |
+
+### 4.6 Case Reports
 | GET /cases/:id/report → full case_report object \| 404 if not yet generated       |
 |                                                                                   |
 | POST /cases/:id/report → write report (n8n WF6 only, protected by webhook secret) |
 
-### 4.6 Webhooks (n8n triggers --- FastAPI → n8n)
+### 4.7 Webhooks (n8n triggers --- FastAPI → n8n)
   **Webhook**                          **Trigger**                                             **n8n Workflow**
   POST /webhooks/case-created          New case + each customer message while pending_triage   WF1
 

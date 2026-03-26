@@ -3,7 +3,6 @@
 import * as React from 'react';
 
 import { AppShell } from '@/components/layout/AppShell';
-import { NotificationBadge } from '@/components/shared/NotificationBadge';
 import { api } from '@/lib/api';
 import { SearchFilterBar, type Filters } from '@/components/dashboard/SearchFilterBar';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
@@ -49,17 +48,14 @@ export default function ApproverDashboardPage() {
 
   return (
     <AppShell role="approver" title="Approval Queue">
-      <div className="flex items-center justify-between">
-        <div className="relative text-[24px] font-bold">
-          Approval Queue
-          <NotificationBadge count={cases.length} />
-        </div>
-      </div>
-
       <SearchFilterBar
         value={filters}
         onChange={setFilters}
-        statusOptions={[{ value: 'awaiting_approval', label: 'Awaiting approval' }]}
+        statusOptions={[
+          { value: 'awaiting_approval', label: 'Awaiting approval' },
+          { value: 'approved_executing', label: 'Approved' },
+          { value: 'rejected_human_required', label: 'Rejected' },
+        ]}
       />
 
       <div className="mt-6">

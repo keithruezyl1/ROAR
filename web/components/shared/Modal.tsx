@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
@@ -15,7 +15,19 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
     'select:not([disabled])',
     '[tabindex]:not([tabindex="-1"])',
   ].join(',');
-  return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter((el) => !el.hasAttribute('disabled'));
+
+  return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+    (el) => !el.hasAttribute('disabled')
+  );
+}
+
+function getInitialFocusTarget(panel: HTMLElement): HTMLElement {
+  const preferred = panel.querySelector<HTMLElement>(
+    'textarea:not([disabled]),input:not([disabled]),select:not([disabled])'
+  );
+  if (preferred) return preferred;
+  const focusables = getFocusable(panel);
+  return focusables[0] ?? panel;
 }
 
 export function Modal({
@@ -34,6 +46,15 @@ export function Modal({
   const [mounted, setMounted] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
 
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const handleClose = React.useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
   React.useEffect(() => {
     setMounted(true);
   }, []);
@@ -42,7 +63,7 @@ export function Modal({
     if (!open) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
       if (e.key !== 'Tab') return;
 
       const panel = panelRef.current;
@@ -73,12 +94,11 @@ export function Modal({
     const priorOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // focus first focusable after open
+    // Focus once on open (do not re-run on every re-render)
     const t = window.setTimeout(() => {
       const panel = panelRef.current;
       if (!panel) return;
-      const focusables = getFocusable(panel);
-      (focusables[0] ?? panel).focus();
+      getInitialFocusTarget(panel).focus();
     }, 0);
 
     return () => {
@@ -86,17 +106,13 @@ export function Modal({
       document.body.style.overflow = priorOverflow;
       window.clearTimeout(t);
     };
-  }, [open, onClose]);
+  }, [handleClose, open]);
 
   if (!mounted || !open) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} aria-hidden />
 
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div
@@ -114,8 +130,8 @@ export function Modal({
         >
           <div className="flex items-center justify-between border-b border-border-default p-6">
             <div className="text-[20px] font-semibold text-text-primary">{title}</div>
-            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close modal">
-              ×
+            <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Close modal">
+              x
             </Button>
           </div>
           <div className="p-6 text-[15px] text-text-primary">{children}</div>

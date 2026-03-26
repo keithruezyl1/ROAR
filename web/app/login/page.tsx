@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -9,7 +9,7 @@ import { decodeJwtPayload } from '@/lib/jwt';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = React.useState('');
@@ -101,6 +101,15 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-bg-base" />}>
+      <LoginPageContent />
+    </React.Suspense>
   );
 }
 

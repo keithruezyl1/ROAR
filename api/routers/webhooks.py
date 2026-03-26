@@ -1,4 +1,4 @@
-﻿"""Inbound webhook endpoints (n8n → FastAPI)."""
+"""Inbound webhook endpoints (n8n → FastAPI)."""
 
 from __future__ import annotations
 

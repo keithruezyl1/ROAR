@@ -3,50 +3,331 @@
 import * as React from 'react';
 
 import { Button } from '@/components/shared/Button';
+import { Textarea } from '@/components/shared/Textarea';
+import type { DisputeType, IntakeReason, OrderDetails } from '@/types';
 
-export type StructuredOption = {
-  label: string;
-  value: string;
+export interface StructuredResponseProps {
+  question: string;
+  caseId: string;
+  disputeType: DisputeType;
+  intakeReason: IntakeReason | null;
+  orderDetails: OrderDetails | null;
+  onSend: (content: string) => void | Promise<void>;
+  multiSelect?: boolean;
+}
+
+type QuestionType =
+  | 'ISSUE_DETAILS'
+  | 'Q_REFUND_RECEIPT'
+  | 'Q_REFUND_PAYMENT'
+  | 'Q_REFUND_TIMING'
+  | 'Q_DELIVERY_TRACKING'
+  | 'Q_DELIVERY_SLA'
+  | 'Q_DELIVERY_CARRIER'
+  | 'Q_ITEM_SELECTION'
+  | 'Q_AMOUNT_CONFIRM'
+  | 'Q_ORDER_CONFIRM'
+  | 'Q_TRACKING_CONFIRM'
+  | 'Q_EDD_CONFIRM';
+
+type StructuredConfig = {
+  questionType: QuestionType;
+  options: string[];
+  multiSelect?: boolean;
 };
 
+const SHARED_OPTIONS: Record<Exclude<QuestionType, 'ISSUE_DETAILS' | 'Q_ITEM_SELECTION' | 'Q_AMOUNT_CONFIRM' | 'Q_ORDER_CONFIRM' | 'Q_TRACKING_CONFIRM' | 'Q_EDD_CONFIRM'>, string[]> = {
+  Q_REFUND_RECEIPT: [
+    'Yes, I received everything but want a refund',
+    'Yes, I received part of my order',
+    'No, I received nothing',
+    'Other',
+  ],
+  Q_REFUND_PAYMENT: [
+    'Credit / Debit card',
+    'PromptPay / Bank transfer',
+    'Digital wallet (TrueMoney, GCash, Rabbit LINE Pay)',
+    'Cash on delivery (COD)',
+    'Other',
+  ],
+  Q_REFUND_TIMING: [
+    'Within the last 7 days',
+    '8 to 14 days ago',
+    'More than 14 days ago',
+    'Other',
+  ],
+  Q_DELIVERY_TRACKING: [
+    'Still in transit / No updates',
+    "Marked as delivered but I didn't receive it",
+    "Delayed - tracking hasn't moved in days",
+    'Other',
+  ],
+  Q_DELIVERY_SLA: [
+    'Yes, by 1 to 3 days',
+    'Yes, by more than 3 days',
+    "No, it hasn't passed yet",
+    'Other',
+  ],
+  Q_DELIVERY_CARRIER: [
+    "Yes, they couldn't help",
+    "Yes, they're investigating",
+    "No, I haven't contacted them",
+    'Other',
+  ],
+};
+
+const ISSUE_DETAIL_OPTIONS: Record<IntakeReason, string[]> = {
+  charged_but_received_nothing: [
+    'I never received any delivery attempt',
+    'The order appears unfulfilled',
+    'Tracking never showed any real progress',
+    'Other',
+  ],
+  wrong_item: [
+    'It was a completely different item',
+    'It was the wrong size, color, or variant',
+    'Part of the order was wrong',
+    'Other',
+  ],
+  damaged_item: [
+    'The item itself is damaged',
+    'The packaging was damaged too',
+    'Only some items were damaged',
+    'Other',
+  ],
+  partial_order: [
+    'Some items arrived and some were missing',
+    'The package arrived incomplete',
+    'I received the wrong quantity',
+    'Other',
+  ],
+  late_or_missing_delivery: [
+    'Tracking shows delayed in transit',
+    "It says delivered but I didn't receive it",
+    'There have been no updates for several days',
+    'Other',
+  ],
+  return_for_refund: [
+    'The item is unused and I want to return it',
+    'I changed my mind about the purchase',
+    'The item was opened but I still want to return it',
+    'Other',
+  ],
+  other_refund: [
+    'It is mainly a refund issue',
+    'It is a return-related refund issue',
+    'Other',
+  ],
+  other_delivery: [
+    'It is mainly a delivery issue',
+    'It is related to tracking or delivery status',
+    'Other',
+  ],
+};
+
+function normalize(text: string) {
+  return text.toLowerCase();
+}
+
+function containsAny(text: string, phrases: string[]) {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function matchQuestionType(question: string, disputeType: DisputeType, multiSelect?: boolean): QuestionType | null {
+  const text = normalize(question);
+
+  if (containsAny(text, ['more detail', 'what happened', 'tell me more', 'share a bit more'])) return 'ISSUE_DETAILS';
+  if (containsAny(text, ['which items', 'what items']) && multiSelect) return 'Q_ITEM_SELECTION';
+  if (containsAny(text, ['amount']) && containsAny(text, ['confirm', 'correct'])) return 'Q_AMOUNT_CONFIRM';
+  if (containsAny(text, ['order']) && containsAny(text, ['referring to', 'the right order', 'confirm this order'])) return 'Q_ORDER_CONFIRM';
+
+  if (containsAny(text, ['payment method', 'mode of payment', 'how did you pay', 'what payment method did you use'])) return 'Q_REFUND_PAYMENT';
+
+  if (disputeType === 'refund') {
+    if (containsAny(text, ['received any part', 'did any part arrive', 'received part of your order'])) return 'Q_REFUND_RECEIPT';
+    if ((containsAny(text, ['order placed', 'when was']) && containsAny(text, ['order', 'purchase'])) || containsAny(text, ['how long ago'])) return 'Q_REFUND_TIMING';
+  }
+
+  if (disputeType === 'delivery') {
+    if (containsAny(text, ['tracking status', 'tracking currently show', 'status does the tracking'])) return 'Q_DELIVERY_TRACKING';
+    if (containsAny(text, ['estimated delivery']) && containsAny(text, ['passed', 'late', 'overdue'])) return 'Q_DELIVERY_SLA';
+    if (containsAny(text, ['contacted the carrier', 'contacted the courier', 'reached out to the carrier'])) return 'Q_DELIVERY_CARRIER';
+    if (containsAny(text, ['tracking']) && containsAny(text, ['consistent', 'match what you see'])) return 'Q_TRACKING_CONFIRM';
+    if (containsAny(text, ['estimated delivery date']) && containsAny(text, ['confirm', 'correct'])) return 'Q_EDD_CONFIRM';
+  }
+
+  return null;
+}
+
+export function getStructuredConfig({
+  question,
+  disputeType,
+  intakeReason,
+  orderDetails,
+  multiSelect,
+}: Pick<StructuredResponseProps, 'question' | 'disputeType' | 'intakeReason' | 'orderDetails' | 'multiSelect'>): StructuredConfig | null {
+  const questionType = matchQuestionType(question, disputeType, multiSelect);
+  if (!questionType) return null;
+
+  switch (questionType) {
+    case 'ISSUE_DETAILS':
+      if (!intakeReason) return null;
+      return { questionType, options: ISSUE_DETAIL_OPTIONS[intakeReason] ?? [] };
+    case 'Q_ITEM_SELECTION': {
+      const items = orderDetails?.items?.map((item) => item.item_name) ?? [];
+      if (items.length <= 1) return null;
+      return { questionType, options: items, multiSelect: true };
+    }
+    case 'Q_AMOUNT_CONFIRM': {
+      const amount = orderDetails?.transaction?.amount;
+      if (typeof amount !== 'number') return null;
+      return { questionType, options: [`Yes, THB ${amount.toFixed(2)}`, "No, it's a different amount"] };
+    }
+    case 'Q_ORDER_CONFIRM': {
+      const createdAt = orderDetails?.created_at;
+      if (!createdAt) return null;
+      const orderDate = new Date(createdAt).toLocaleDateString('en-TH');
+      return { questionType, options: [`Yes, that's the order (placed ${orderDate})`, "No, it's a different order"] };
+    }
+    case 'Q_TRACKING_CONFIRM': {
+      if (!orderDetails?.shipment?.carrier || !orderDetails.shipment.status) return null;
+      return {
+        questionType,
+        options: [
+          `Yes, mine also shows ${orderDetails.shipment.status} with ${orderDetails.shipment.carrier}`,
+          'No, mine shows something different',
+        ],
+      };
+    }
+    case 'Q_EDD_CONFIRM': {
+      if (!orderDetails?.shipment?.estimated_delivery) return null;
+      const edd = new Date(orderDetails.shipment.estimated_delivery).toLocaleDateString('en-TH');
+      return { questionType, options: [`Yes, my estimated delivery was ${edd}`, 'No, I was given a different date'] };
+    }
+    default: {
+      const options = SHARED_OPTIONS[questionType as keyof typeof SHARED_OPTIONS];
+      return options ? { questionType, options } : null;
+    }
+  }
+}
+
 export function StructuredResponse({
-  prompt,
-  options,
-  onSelect,
-  disabled,
-}: {
-  prompt: string;
-  options: StructuredOption[];
-  onSelect: (value: string) => void;
-  disabled?: boolean;
-}) {
-  const [selected, setSelected] = React.useState<string | null>(null);
+  question,
+  disputeType,
+  intakeReason,
+  orderDetails,
+  onSend,
+  multiSelect,
+}: StructuredResponseProps) {
+  const [selected, setSelected] = React.useState<string[]>([]);
+  const [otherValue, setOtherValue] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+
+  const config = React.useMemo(
+    () => getStructuredConfig({ question, disputeType, intakeReason, orderDetails, multiSelect }),
+    [disputeType, intakeReason, multiSelect, orderDetails, question]
+  );
+
+  React.useEffect(() => {
+    setSelected([]);
+    setOtherValue('');
+  }, [question]);
+
+  if (!config) return null;
+
+  const otherSelected = selected.includes('Other');
+
+  const sendValue = async (value: string) => {
+    setSending(true);
+    try {
+      await onSend(value);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const toggleSelection = async (option: string) => {
+    if (!config.multiSelect) {
+      setSelected([option]);
+      if (option !== 'Other') {
+        await sendValue(option);
+      }
+      return;
+    }
+
+    setSelected((current) => (
+      current.includes(option)
+        ? current.filter((item) => item !== option)
+        : [...current, option]
+    ));
+  };
+
+  const confirmMultiSelect = async () => {
+    const chosen = selected.filter((item) => item !== 'Other');
+    if (chosen.length === 0) return;
+
+    let prefix = 'Selected items';
+    if (intakeReason === 'partial_order') prefix = 'Missing items';
+    if (intakeReason === 'damaged_item') prefix = 'Damaged items';
+    if (intakeReason === 'wrong_item') prefix = 'Affected items';
+    if (disputeType === 'delivery' && intakeReason === 'late_or_missing_delivery') prefix = 'Items not received';
+
+    await sendValue(`${prefix}: ${chosen.join(', ')}`);
+  };
+
+  const submitOther = async () => {
+    if (otherValue.trim().length === 0) return;
+    await sendValue(otherValue.trim());
+  };
 
   return (
-    <div className="my-3 flex flex-col items-start gap-2">
-      <div className="text-[13px] font-medium text-text-secondary">{prompt}</div>
+    <div className="my-3 flex flex-col items-start gap-3">
       <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={disabled || selected !== null}
-            onClick={() => {
-              setSelected(opt.value);
-              onSelect(opt.value);
-            }}
-            className={`rounded-pill px-3 py-1.5 text-[13px] font-medium transition-colors duration-instant ${
-              selected === opt.value
-                ? 'bg-primary text-text-inverse'
-                : selected !== null
-                  ? 'border border-border-default bg-bg-sunken text-text-muted opacity-50'
-                  : 'border border-border-default bg-bg-sunken text-text-secondary hover:border-border-strong hover:bg-bg-surface'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        {config.options.map((option) => {
+          const isSelected = selected.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              disabled={sending}
+              onClick={() => void toggleSelection(option)}
+              className={isSelected
+                ? 'flex items-center gap-1 rounded-pill bg-primary px-4 py-2 text-[13px] font-medium text-text-inverse transition-colors duration-instant'
+                : 'rounded-pill border border-primary bg-primary/15 px-4 py-2 text-[13px] font-medium text-text-primary transition-colors duration-instant hover:bg-primary/25'
+              }
+            >
+              {config.multiSelect && isSelected ? <span aria-hidden>+</span> : null}
+              <span>{option}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {otherSelected ? (
+        <div className="w-full overflow-hidden transition-all duration-200 ease-out">
+          <Textarea
+            label="Please describe"
+            value={otherValue}
+            onChange={(event) => setOtherValue(event.target.value)}
+            placeholder="Please describe..."
+            rows={4}
+          />
+          <div className="mt-3 flex justify-end">
+            <Button onClick={() => void submitOther()} disabled={sending || otherValue.trim().length === 0}>
+              Send response
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {config.multiSelect && selected.filter((item) => item !== 'Other').length > 0 ? (
+        <div className="flex w-full justify-end">
+          <Button onClick={() => void confirmMultiSelect()} disabled={sending}>
+            Confirm selection
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
+

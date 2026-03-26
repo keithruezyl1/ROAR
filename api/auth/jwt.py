@@ -1,4 +1,4 @@
-﻿"""JWT creation and verification using python-jose."""
+"""JWT creation and verification using python-jose."""
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from api.config import settings

@@ -1,6 +1,12 @@
 ﻿import * as React from 'react';
 import clsx from 'clsx';
 
+type Props = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+  label: string;
+  error?: string;
+  size?: 'sm' | 'default';
+};
+
 export function Input({
   label,
   error,
@@ -8,11 +14,7 @@ export function Input({
   className,
   disabled,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
-  error?: string;
-  size?: 'sm' | 'default';
-}) {
+}: Props) {
   const hasValue = props.value != null && String(props.value).length > 0;
 
   const base =

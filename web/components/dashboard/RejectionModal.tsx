@@ -30,10 +30,20 @@ export function RejectionModal({
   const [search, setSearch] = React.useState('');
   const [policies, setPolicies] = React.useState<Policy[]>([]);
   const [selected, setSelected] = React.useState<Policy[]>([]);
+  const [loadError, setLoadError] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
-    void api.get<Policy[]>('/policies').then(setPolicies).catch(() => setPolicies([]));
+    setLoadError(false);
+    void api
+      .get<Policy[]>('/policies')
+      .then((rows) => {
+        setPolicies(rows);
+      })
+      .catch(() => {
+        setLoadError(true);
+        setPolicies([]);
+      });
   }, [open]);
 
   const filtered = policies.filter((policy) => {
@@ -56,6 +66,9 @@ export function RejectionModal({
         <Input label="Search policies" value={search} onChange={(e) => setSearch(e.target.value)} />
 
         <div className="max-h-[180px] overflow-y-auto rounded-input border border-border-default bg-bg-sunken">
+          {loadError ? (
+            <div className="px-3 py-2 text-[13px] text-text-muted">Could not load policies (API unreachable).</div>
+          ) : null}
           {filtered.slice(0, 30).map((policy) => {
             const active = selected.some((selectedPolicy) => selectedPolicy.slug === policy.slug);
 

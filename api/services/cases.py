@@ -1,4 +1,4 @@
-"""Case business logic — reference number generation and status transitions."""
+"""Case business logic - reference number generation and status transitions."""
 
 from __future__ import annotations
 
@@ -9,20 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models import Case
 
-# Valid status transitions — from ROAR_BRL_v1.1.md §3.2
+# Valid status transitions - aligned to the documented ROAR close behavior,
+# where customer or agent termination may close a case from any non-terminal state.
 VALID_TRANSITIONS: dict[str, list[str]] = {
-    "pending_triage": ["pending_triage", "awaiting_approval", "escalated_human_required"],
-    "awaiting_approval": ["approved_executing", "rejected_human_required"],
-    "approved_executing": ["resolved"],
-    "rejected_human_required": ["closed"],
-    "escalated_human_required": ["closed"],
+    "pending_triage": ["pending_triage", "awaiting_approval", "escalated_human_required", "closed"],
+    "awaiting_approval": ["approved_executing", "rejected_human_required", "closed"],
+    "approved_executing": ["resolved", "closed"],
+    "rejected_human_required": ["resolved", "closed"],
+    "escalated_human_required": ["resolved", "closed"],
     "resolved": ["closed"],
     "closed": [],
 }
 
 
 def validate_status_transition(current: str, next_status: str) -> bool:
-    """Return True if the transition from current → next_status is valid."""
+    """Return True if the transition from current to next_status is valid."""
     allowed = VALID_TRANSITIONS.get(current, [])
     return next_status in allowed
 
@@ -48,5 +49,3 @@ def ensure_fields_present(payload: dict, required_fields: Iterable[str]) -> None
     missing = [f for f in required_fields if payload.get(f) in (None, "")]
     if missing:
         raise ValueError(f"Missing required fields: {', '.join(missing)}")
-
-

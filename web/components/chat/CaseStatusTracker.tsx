@@ -1,15 +1,27 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import clsx from 'clsx';
 
 import { CASE_STATUS_LABELS } from '@/lib/constants';
 
-const steps: Array<{ key: string; label: string }> = [
+const AUTONOMOUS_STEPS: Array<{ key: string; label: string }> = [
   { key: 'pending_triage', label: CASE_STATUS_LABELS.pending_triage },
   { key: 'awaiting_approval', label: CASE_STATUS_LABELS.awaiting_approval },
   { key: 'approved_executing', label: CASE_STATUS_LABELS.approved_executing },
   { key: 'resolved', label: CASE_STATUS_LABELS.resolved },
+  { key: 'closed', label: CASE_STATUS_LABELS.closed },
+];
+
+const ESCALATION_STEPS: Array<{ key: string; label: string }> = [
+  { key: 'pending_triage', label: CASE_STATUS_LABELS.pending_triage },
+  { key: 'escalated_human_required', label: CASE_STATUS_LABELS.escalated_human_required },
+  { key: 'closed', label: CASE_STATUS_LABELS.closed },
+];
+
+const REJECTED_STEPS: Array<{ key: string; label: string }> = [
+  { key: 'awaiting_approval', label: CASE_STATUS_LABELS.awaiting_approval },
+  { key: 'rejected_human_required', label: CASE_STATUS_LABELS.rejected_human_required },
   { key: 'closed', label: CASE_STATUS_LABELS.closed },
 ];
 
@@ -23,6 +35,11 @@ export function CaseStatusTracker({
   defaultExpanded?: boolean;
 }) {
   const [open, setOpen] = React.useState(defaultExpanded);
+  const steps = React.useMemo(() => {
+    if (status === 'escalated_human_required') return ESCALATION_STEPS;
+    if (status === 'rejected_human_required') return REJECTED_STEPS;
+    return AUTONOMOUS_STEPS;
+  }, [status]);
   const activeIndex = Math.max(0, steps.findIndex((s) => s.key === status));
 
   return (

@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/roar"
     jwt_secret_key: str = "dev-secret-change-in-production"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 480
+    jwt_expire_minutes: int = 44640
     n8n_webhook_base_url: str = "http://localhost:5678/webhook"
     n8n_webhook_secret: str = "dev-webhook-secret"
     openai_api_key: str = ""

@@ -24,9 +24,19 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function PoliciesPage() {
   const [policies, setPolicies] = React.useState<Policy[]>([]);
   const [search, setSearch] = React.useState('');
+  const [loadError, setLoadError] = React.useState(false);
 
   React.useEffect(() => {
-    void api.get<Policy[]>('/policies').then(setPolicies).catch(() => setPolicies([]));
+    setLoadError(false);
+    void api
+      .get<Policy[]>('/policies')
+      .then((rows) => {
+        setPolicies(rows);
+      })
+      .catch(() => {
+        setLoadError(true);
+        setPolicies([]);
+      });
   }, []);
 
   const grouped = React.useMemo(() => {
@@ -94,7 +104,11 @@ export default function PoliciesPage() {
             </section>
           ))}
 
-          {categories.length === 0 ? (
+          {loadError ? (
+            <div className="mt-6 rounded-card border border-border-default bg-bg-surface p-4 text-[13px] text-text-secondary">
+              Could not load policies from the API. Please make sure FastAPI is running on port 8000.
+            </div>
+          ) : categories.length === 0 ? (
             <div className="mt-6 text-[13px] text-text-muted">No policies found.</div>
           ) : null}
         </div>

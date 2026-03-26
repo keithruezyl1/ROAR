@@ -1,18 +1,22 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import clsx from 'clsx';
 
 export type SenderType = 'customer' | 'ai' | 'agent' | 'system';
 
+type BubbleStatus = 'error' | null;
+
 export function ChatBubble({
   senderType,
   content,
   createdAt,
+  status,
 }: {
   senderType: SenderType;
   content: string;
   createdAt?: string;
+  status?: BubbleStatus;
 }) {
   const [hover, setHover] = React.useState(false);
 
@@ -37,7 +41,9 @@ export function ChatBubble({
     >
       <div className="max-w-[72%]">
         <div className={clsx('px-[14px] py-[10px] text-[15px]', bubble)}>{content}</div>
-        {createdAt && hover ? (
+        {status === 'error' ? (
+          <div className="mt-1 text-[11px] text-danger">Error sending message</div>
+        ) : createdAt && hover ? (
           <div className="mt-1 text-[11px] text-text-muted">{new Date(createdAt).toLocaleString()}</div>
         ) : null}
       </div>

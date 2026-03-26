@@ -289,6 +289,8 @@ Complete authoritative triage rule set. ALL rules for a dispute type must pass f
 |                                                                                                        |
 | **Outcome:** Valid close reasons: Resolved, Customer unresponsive, Duplicate case. See §10.3.          |
 
+Escalation agents have an operational action surface in the case UI (refund create/deny/duplicate, return create/approve/reject) implemented via FastAPI and persisted as chat messages.
+
 ## 7. Escalation Workflow Rules
 | **BR-ESC-001 Escalation Cases Visible to All Escalation Agents**                                                                                    |
 |                                                                                                                                                     |
@@ -297,12 +299,12 @@ Complete authoritative triage rule set. ALL rules for a dispute type must pass f
 |                                                                                                                                                     |
 | **Outcome:** assigned_to set on record view open.                                                                                                   |
 
-| **BR-ESC-002 Escalation Agent Must Join Chat**                                             |
+| **BR-ESC-002 Escalation Agent Joins via Claim**                                             |
 |                                                                                            |
 | Type: Escalation                                                                           |
-| **Condition:** Agent must click 'Join Chat' from record view to enter live conversation. |
+| **Condition:** Agent opens the escalated case record view to claim and enter live conversation. |
 |                                                                                            |
-| **Outcome:** PATCH /cases/:id { assigned_to } + system message posted.                     |
+| **Outcome:** POST /cases/:id/claim { assigned_to } + system message posted.                     |
 
 | **BR-ESC-003 Same Chat Closure Rules Apply**                                                  |
 |                                                                                               |

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +25,33 @@ bearer_optional = HTTPBearer(auto_error=False)
 class MessageCreateRequest(BaseModel):
     content: str = Field(min_length=1)
     sender_type: str
+
+
+    # n8n HTTP Request nodes sometimes stringify objects (e.g. "=[object Object]").
+    # Accept those values but coerce to None so we do not 422 and break workflows.
+    metadata: dict[str, Any] | None = None
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def _coerce_metadata(cls, v: Any):
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if s in ("", "null", "undefined", "[object Object]", "=[object Object]"):
+                return None
+            # n8n sometimes prefixes expressions with "="; try parsing the remainder as JSON.
+            if s.startswith("="):
+                s = s[1:].strip()
+            try:
+                parsed = json.loads(s)
+            except Exception:
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        # Anything else (lists, numbers, etc.) is not supported metadata in our DB model.
+        return None
 
 
 @router.post("/{case_id}/messages", status_code=201)
@@ -57,7 +86,7 @@ async def create_message(
         sender_type=payload.sender_type,
         sender_id=sender_id,
         content=payload.content,
-        metadata_=None,
+        metadata_=payload.metadata,
     )
     db.add(msg)
 
@@ -116,4 +145,5 @@ async def list_messages(case_id: str, db: AsyncSession = Depends(get_db)):
             for m in msgs
         ]
     }
+
 
