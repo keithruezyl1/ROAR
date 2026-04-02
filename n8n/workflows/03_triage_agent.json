@@ -1,33 +1,31 @@
 {
-  "name": "ROAR Workflow - Triage Agent",
+  "name": "#3 ROAR Workflow - Triage Agent",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "triage-complete",
-        "responseMode": "lastNode",
         "options": {}
       },
-      "id": "c8d4a6f2-0b7b-4d6b-bdbd-820b2f3c6e21",
+      "id": "7a3aa3e5-cd8a-42e8-944a-c906e883b5b8",
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
-        240
-      ]
+        -2176,
+        592
+      ],
+      "webhookId": "96ad1054-b20a-4b46-81d8-174ce9dba527"
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Accept",
@@ -37,26 +35,24 @@
         },
         "options": {}
       },
-      "id": "a2a0b66e-7c8a-4c2e-9a62-5f8a1bdf0438",
+      "id": "812b6201-12bb-4e5c-bd36-09376848f8eb",
       "name": "Fetch Full Case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        480,
-        240
+        -1952,
+        592
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/policies?category=in.(store,payment,return,delivery,sla)&select=slug,title,content",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/policies",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Accept",
@@ -66,125 +62,72 @@
         },
         "options": {}
       },
-      "id": "c6f5cf69-d3ac-45be-8f89-4a73a7f2a6d9",
+      "id": "16094898-c94e-4eb5-894f-dbc29283b7dc",
       "name": "Fetch Policies",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        720,
-        240
-      ]
+        -1728,
+        592
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\nconst policies = $items('Fetch Policies')[0]?.json ?? [];\n\nconst dispute_type = caseData.dispute_type || $node['Webhook Trigger'].json.body.dispute_type;\nconst dispute_subtype = caseData.dispute_subtype || $node['Webhook Trigger'].json.body.dispute_subtype || null;\nconst resolution_preference = caseData.resolution_preference || $node['Webhook Trigger'].json.body.resolution_preference || null;\n\nconst current_date = new Date().toISOString().split('T')[0];\n\nconst refundRules = [\n  'Payment confirmed: sim_transactions.status = \\'confirmed\\'',\n  'Order fulfilled or returned: sim_orders.status IN (\\'fulfilled\\',\\'returned\\')',\n  'Amount below threshold: sim_transactions.amount <= 500 THB',\n  'No prior dispute: sim_refund_records empty for this order_id',\n  'Within return window: order created_at within 30 days of today',\n];\n\nconst deliveryRules = [\n  'Delay (not lost): sim_shipments.status = \\'delayed\\' NOT \\'lost\\'/\\'failed\\'',\n  'Item shipped: sim_shipments.shipped_at IS NOT NULL',\n  'No duplicate complaint: No prior open case for same order_id',\n  'Within SLA window: sim_shipments.estimated_delivery >= today',\n];\n\nconst subtypeRules = [];\nif (dispute_subtype === 'damaged_goods') subtypeRules.push('Validate product damage evidence and return/refund eligibility by policy.');\nif (dispute_subtype === 'wrong_item') subtypeRules.push('Validate mismatch between ordered items and delivered items.');\nif (dispute_subtype === 'quality_issue') subtypeRules.push('Validate quality claim against return/refund policy windows.');\nif (resolution_preference === 'replacement') subtypeRules.push('Prefer escalation when replacement requires manual inventory and fulfillment checks.');\nif (resolution_preference === 'refund') subtypeRules.push('Prefer refund-path policy checks before escalating.');\n\nconst triage_rules = dispute_type === 'refund' ? [...refundRules, ...subtypeRules] : [...deliveryRules, ...subtypeRules];\n\nconst user_message = {\n  information_bundle: caseData.information_bundle ?? null,\n  dispute_type,\n  dispute_subtype,\n  resolution_preference,\n  triage_rules,\n  policy_context: policies,\n  current_date,\n};\n\nreturn [{\n  case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n  user_message,\n}];\n"
+        "jsCode": "const caseData = $items(\"Fetch Full Case\")[0]?.json ?? {};\nconst policies = ($items(\"Fetch Policies\") || []).map((i) => i.json);\nconst webhookBody = $node[\"Webhook Trigger\"]?.json?.body ?? {};\n\nconst normalize = (value) => String(value ?? \"\").trim().toLowerCase() || null;\nconst toArray = (value) => (Array.isArray(value) ? value : []);\nconst toNumber = (value) => {\n  const n = Number(value);\n  return Number.isFinite(n) ? n : null;\n};\n\nconst dispute_type = normalize(caseData.dispute_type ?? webhookBody.dispute_type);\nconst dispute_subtype = normalize(caseData.dispute_subtype ?? webhookBody.dispute_subtype);\nconst resolution_preference = normalize(\n  caseData.resolution_preference ?? webhookBody.resolution_preference\n);\n\nconst case_status = normalize(caseData.status);\nconst invalid_reason_code = normalize(caseData.invalid_reason_code);\nconst invalid_reason_detail = caseData.invalid_reason_detail ?? null;\nconst appeal_priority = normalize(caseData.appeal_priority);\n\nconst bundle = caseData.information_bundle ?? {};\n\nconst orderFromOrder = bundle.order ?? null;\nconst orderFromOrderData = bundle.order_data\n  ? {\n      order_id: bundle.order_data.order_id ?? null,\n      status: bundle.order_data.order_status ?? null,\n      created_at: bundle.order_data.order_date ?? null,\n      fulfilled_at: bundle.order_data.fulfilled_at ?? null,\n      delivered_at: bundle.order_data.delivered_at ?? null,\n      total_amount: bundle.order_data.total_amount ?? null,\n      customer_email: bundle.order_data.customer_email ?? null,\n    }\n  : null;\n\nconst order = orderFromOrder ?? orderFromOrderData ?? null;\n\nconst paymentRecords = toArray(bundle.payment_records);\nconst paymentTxnFromRecords =\n  paymentRecords.find((p) => normalize(p.transaction_type) === \"payment\") ?? null;\n\nconst transaction = bundle.transaction ?? paymentTxnFromRecords ?? null;\n\nconst refundRecordsFromBundle = toArray(bundle.refund_records);\nconst refundRecordsFromPayment = paymentRecords.filter(\n  (p) => normalize(p.transaction_type) === \"refund\"\n);\nconst refundRecords =\n  refundRecordsFromBundle.length > 0 ? refundRecordsFromBundle : refundRecordsFromPayment;\n\nconst shipment = bundle.shipment ?? bundle.shipment_data ?? null;\nconst trackingEvents = toArray(bundle.tracking_events);\nconst stockRecords = toArray(bundle.stock_records);\nconst orderItemsDetail = toArray(bundle.order_items_detail);\nconst affected_item_ids = toArray(bundle.affected_item_ids);\nconst affected_items_detail = toArray(bundle.affected_items_detail);\n\nconst proof_requirements = bundle.proof_requirements ?? caseData.proof_requirements ?? null;\nconst proof_uploads = toArray(bundle.proof_uploads ?? caseData.proof_uploads);\nconst proof_analysis = bundle.proof_analysis ?? caseData.proof_analysis ?? null;\nconst proof_analysis_status =\n  bundle.proof_analysis_status ?? caseData.proof_analysis_status ?? null;\nconst evidence_bundle = bundle.evidence_bundle ?? caseData.evidence_bundle ?? null;\nconst proof_messages = toArray(bundle.proof_messages);\nconst proof_attachments = toArray(bundle.proof_attachments);\nconst intake_messages = toArray(bundle.intake_messages);\nconst recent_transcript = toArray(bundle.recent_transcript);\n\nconst current_date = new Date().toISOString().split(\"T\")[0];\n\nconst toDateOnly = (value) => {\n  if (!value || typeof value !== \"string\") return null;\n  return value.includes(\"T\") ? value.split(\"T\")[0] : value;\n};\n\nconst diffDaysUtc = (fromDate, toDate) => {\n  if (!fromDate || !toDate) return null;\n  const from = new Date(`${fromDate}T00:00:00Z`);\n  const to = new Date(`${toDate}T00:00:00Z`);\n  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;\n  return Math.floor((to.getTime() - from.getTime()) / 86400000);\n};\n\nconst delivered_date = toDateOnly(\n  shipment?.delivered_at ??\n    bundle?.shipment_data?.delivered_at ??\n    order?.delivered_at ??\n    bundle?.order_data?.delivered_at ??\n    null\n);\n\nconst fulfilled_date = toDateOnly(\n  order?.fulfilled_at ??\n    bundle?.order_data?.fulfilled_at ??\n    null\n);\n\nconst order_created_date = toDateOnly(\n  order?.created_at ??\n    bundle?.order_data?.order_date ??\n    null\n);\n\nconst return_window_basis_date = delivered_date ?? fulfilled_date ?? order_created_date;\n\nconst days_since_basis_date =\n  return_window_basis_date != null\n    ? diffDaysUtc(return_window_basis_date, current_date)\n    : null;\n\nconst transaction_amount = toNumber(\n  transaction?.amount ??\n    bundle?.order_data?.total_amount ??\n    order?.total_amount\n);\n\nconst hasInventorySnapshot =\n  stockRecords.length > 0 ||\n  orderItemsDetail.some((i) => i.quantity_available_now != null);\n\nconst anyItemOutOfStock = orderItemsDetail.some((i) => {\n  const available = toNumber(i.quantity_available_now);\n  const ordered = toNumber(i.quantity_ordered);\n  if (available == null || ordered == null) return true;\n  return available < ordered;\n});\n\nconst itemsMissingInventoryData = orderItemsDetail.some((i) => {\n  return i.quantity_available_now == null;\n});\n\nconst proofPresent =\n  proof_uploads.length > 0 ||\n  evidence_bundle?.proof_present === true ||\n  proof_attachments.length > 0;\n\nconst proofFacts = {\n  proof_required: proof_requirements?.required === true,\n  proof_present: proofPresent,\n  proof_upload_count: proof_uploads.length,\n  proof_uploads,\n  proof_analysis,\n  proof_analysis_status,\n  evidence_bundle,\n  proof_messages,\n  proof_attachments,\n};\n\nconst refundFacts = {\n  payment_status: transaction?.status ?? null,\n  order_status: order?.status ?? null,\n  transaction_amount,\n  amount_threshold: 500,\n  refund_record_count: refundRecords.length,\n  delivered_date,\n  fulfilled_date,\n  order_created_date,\n  return_window_basis_date,\n  days_since_basis_date,\n  within_return_window:\n    days_since_basis_date != null\n      ? days_since_basis_date >= 0 && days_since_basis_date <= 7\n      : null,\n};\n\nconst deliveryFacts = {\n  shipment_status: shipment?.status ?? null,\n  shipped_at: shipment?.shipped_at ?? null,\n  delivered_at: shipment?.delivered_at ?? bundle?.shipment_data?.delivered_at ?? null,\n  estimated_delivery: shipment?.estimated_delivery ?? null,\n  tracking_event_count: trackingEvents.length,\n  tracking_events: trackingEvents,\n  current_date,\n};\n\nconst replacementFacts = {\n  resolution_preference,\n  has_inventory_snapshot: hasInventorySnapshot,\n  any_item_out_of_stock: anyItemOutOfStock,\n  items_missing_inventory_data: itemsMissingInventoryData,\n  order_items_detail_count: orderItemsDetail.length,\n};\n\nconst returnFacts = {\n  resolution_preference,\n  delivered_date,\n  fulfilled_date,\n  order_created_date,\n  return_window_basis_date,\n  days_since_basis_date,\n  within_return_window:\n    days_since_basis_date != null\n      ? days_since_basis_date >= 0 && days_since_basis_date <= 7\n      : null,\n};\n\nconst matrixRules = [\n  \"ROAR_WF_Manual_Mapping_Guide_Decision_Matrix.md is the source of truth.\",\n  \"Use canonical dispute_subtype and resolution_preference from the case record.\",\n  \"resolution_preference is customer-requested; resolution_type is triage-decided.\",\n  \"Apply global blockers before subtype-specific routing.\",\n  \"Duplicate refund risk escalates refund cases.\",\n  \"Unconfirmed payment blocks autonomous or approval routing and requires escalation.\",\n  \"Delivered-but-disputed delivery cases escalate.\",\n  \"Autonomous threshold is THB 500 for refunds and replacements.\",\n  \"Returns are never autonomous.\",\n  \"Return/refund policy window is 7 days.\",\n  \"Replacement requires inventory availability.\",\n  \"affected_items_detail is additive and important for replacement and partial-item logic.\",\n  \"Image proof supports triage facts but does not override deterministic policy.\",\n  \"If a case is invalid/ineligible or lacks sufficient supporting proof, prefer awaiting_customer_decision over immediate human escalation unless the matrix explicitly requires human review.\",\n];\n\nconst expectedDecisionModel = {\n  allowed_case_status_outcomes: [\n    \"approved_executing\",\n    \"awaiting_approval\",\n    \"escalated_human_required\",\n    \"awaiting_customer_decision\",\n  ],\n  allowed_resolution_types: [\n    \"refund\",\n    \"replacement\",\n    \"return\",\n    null,\n  ],\n};\n\nconst user_message = {\n  case: {\n    id: caseData.id ?? webhookBody.case_id ?? null,\n    status: case_status,\n    dispute_type,\n    dispute_subtype,\n    resolution_preference,\n    invalid_reason_code,\n    invalid_reason_detail,\n    appeal_priority,\n  },\n  information_bundle: bundle || null,\n  proof_context: proofFacts,\n  policy_context: policies,\n  triage_rules: matrixRules,\n  expected_decision_model: expectedDecisionModel,\n  current_date,\n  facts: {\n    refund: refundFacts,\n    delivery: deliveryFacts,\n    replacement: replacementFacts,\n    return: returnFacts,\n    proof: proofFacts,\n    affected_items: {\n      affected_item_ids,\n      affected_items_detail,\n      order_items_detail,\n    },\n  },\n  transcript_context: {\n    intake_messages,\n    recent_transcript,\n  },\n};\n\nreturn [\n  {\n    case_id: caseData.id ?? webhookBody.case_id ?? null,\n    dispute_type,\n    dispute_subtype,\n    resolution_preference,\n    user_message,\n  },\n];\n"
       },
-      "id": "e8b6d1bd-7b72-4ad8-8a67-0bb45a47a8f9",
+      "id": "5ccd2e9f-144f-4274-aab8-1805ac5e983e",
       "name": "Build Triage Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ JSON.stringify($json.user_message) }}",
-        "messages": {
-          "messageValues": [
-            {
-              "type": "SystemMessagePromptTemplate",
-              "message": "You are ROAR's triage agent. Apply rule-based retail policies to an information bundle\n\nand determine whether a dispute can be resolved autonomously or must be escalated.\n\nYou will receive: information_bundle, triage_rules, policy_context, current_date.\n\nEVALUATION RULES:\n\n- Evaluate every rule in triage_rules. Return pass or fail for each.\n\n- ALL rules pass → routing_decision = autonomous\n\n- ANY rule fails → routing_decision = escalation\n\n- Any data source null or empty → rule failure → routing_decision = escalation\n\n- Reference specific data values in your evidence field.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"routing_decision\": \"autonomous\" | \"escalation\",\n\n\"rules_evaluated\": [ { \"rule\": \"string\", \"passed\": bool, \"evidence\": \"string\" } ],\n\n\"justification\": \"paragraph\",\n\n\"policies_applied\": [\"slug\"],\n\n\"slas_applied\": [\"slug\"] }"
-            }
-          ]
-        }
-      },
-      "id": "5d2c1f0e-77b3-4b8b-9c5f-0dfbfa02f7d9",
-      "name": "Basic LLM Chain — Triage",
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1,
-      "position": [
-        1200,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "model": "gpt-4o-mini",
-        "options": {
-          "temperature": 0,
-          "maxTokens": 800,
-          "responseFormat": "json_object"
-        }
-      },
-      "id": "1b8a0c2e-6f55-4f0d-a5c4-b0b0bf67b0f0",
-      "name": "OpenAI Chat Model — Triage",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1,
-      "position": [
-        1200,
-        420
-      ],
-      "credentials": {
-        "openAiApi": {
-          "name": "ROAR OpenAI"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet raw = $json;\nlet decision;\n\ntry {\n  if (raw && typeof raw === 'object' && raw.routing_decision) {\n    decision = raw;\n  } else {\n    const text = coerceToString(raw);\n    decision = typeof text === 'string' && text.trim().length ? JSON.parse(text) : null;\n  }\n} catch (e) {\n  decision = null;\n}\n\nconst ok = decision && (decision.routing_decision === 'autonomous' || decision.routing_decision === 'escalation');\n\nconst safeDecision = ok\n  ? decision\n  : {\n      routing_decision: 'escalation',\n      rules_evaluated: [],\n      justification: 'Triage error — manual review required.',\n      policies_applied: [],\n      slas_applied: [],\n    };\n\nreturn [{\n  case_id: $items('Build Triage Prompt')[0]?.json.case_id || $node['Webhook Trigger'].json.body.case_id,\n  ...safeDecision,\n}];\n"
-      },
-      "id": "d8c1c6e6-3c4d-4a9e-9d39-ef31fb4c3415",
-      "name": "Parse + Validate",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1440,
-        240
+        -1504,
+        592
       ]
     },
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $json.routing_decision }}",
+        "value1": "={{ $json.triage_decision }}",
         "rules": {
           "rules": [
             {
-              "value2": "autonomous"
+              "value2": "approved_executing"
             },
             {
-              "value2": "escalation",
+              "value2": "escalated_human_required",
               "output": 1
+            },
+            {
+              "value2": "awaiting_approval",
+              "output": 2
+            },
+            {
+              "value2": "awaiting_customer_decision",
+              "output": 3
             }
           ]
-        },
-        "options": {
-          "fallbackOutput": "extraOutput"
         }
       },
-      "id": "bb8c6be8-bf05-49dc-9b7f-9e43cbd0e0a8",
+      "id": "5bca4a2c-31ef-49b9-9801-7def5c88c6ab",
       "name": "Route on Decision",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        1680,
-        240
+        -1056,
+        560
       ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{$json.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.case_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -194,29 +137,28 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"status\": \"awaiting_approval\",\n  \"resolution_path\": \"autonomous\",\n  \"triage_decision\": {\n    \"routing_decision\": $json.routing_decision,\n    \"rules_evaluated\": $json.rules_evaluated,\n    \"justification\": $json.justification,\n    \"policies_applied\": $json.policies_applied,\n    \"slas_applied\": $json.slas_applied\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({\n  status: $json.status,\n  resolution_path: $json.resolution_path,\n  triage_decision: $json.triage_decision\n}) }}",
         "options": {}
       },
-      "id": "c1c2579b-28d6-42cb-9a23-3d0f6c1d2d1f",
+      "id": "019af414-6ef3-420b-849d-61c98b5d4050",
       "name": "Update - Awaiting Approval",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        120
+        -608,
+        688
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/webhooks/resolution-plan",
-        "authentication": "none",
+        "url": "=http://localhost:5678/webhook/resolution-plan",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "dev-webhook-secret-change-in-production"
             },
             {
               "name": "Content-Type",
@@ -225,30 +167,43 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"case_id\": $json.case_id\n}",
-        "options": {}
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $json.case_id || $json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
       },
-      "id": "1f33f5a3-b1a6-4a44-b0c1-8e2c76c8f3fd",
+      "id": "75ea7e38-135a-47bc-bc33-6b8592c47f62",
       "name": "Trigger Resolution Plan",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2160,
-        120
-      ]
+        -384,
+        688
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{$json.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.case_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -258,29 +213,251 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"status\": \"escalated_human_required\",\n  \"resolution_path\": \"escalation\",\n  \"triage_decision\": {\n    \"routing_decision\": $json.routing_decision,\n    \"rules_evaluated\": $json.rules_evaluated,\n    \"justification\": $json.justification,\n    \"policies_applied\": $json.policies_applied,\n    \"slas_applied\": $json.slas_applied\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({\n  status: $json.status,\n  resolution_path: $json.resolution_path,\n  triage_decision: $json.triage_decision\n}) }}",
         "options": {}
       },
-      "id": "3d9c1c43-84d4-4e23-a271-3f0f1a1e7f0c",
+      "id": "2773cfdf-bcb0-4109-abf5-476fd5257294",
       "name": "Update - Escalated",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        360
+        -608,
+        496
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/webhooks/triage-escalation",
-        "authentication": "none",
+        "url": "=http://localhost:5678/webhook/triage-escalation",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "dev-webhook-secret-change-in-production"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $json.case_id || $json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "d1476fff-7c89-409d-8357-8151539e64fb",
+      "name": "Trigger Summarization",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -384,
+        496
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\nconst topCaseId = input.case_id ?? null;\nconst topDisputeType = input.dispute_type ?? null;\nconst topDisputeSubtype = input.dispute_subtype ?? null;\nconst topResolutionPreference = input.resolution_preference ?? null;\n\nconst userMessage = input.user_message || {};\nconst bundle = userMessage.information_bundle || input.information_bundle || {};\nconst facts = userMessage.facts || input.facts || {};\nconst caseCtx = userMessage.case || {};\n\nconst caseData = {\n  case_id: topCaseId ?? caseCtx.id ?? null,\n  status: caseCtx.status ?? null,\n  dispute_type: topDisputeType ?? caseCtx.dispute_type ?? null,\n  dispute_subtype: topDisputeSubtype ?? caseCtx.dispute_subtype ?? null,\n  resolution_preference: topResolutionPreference ?? caseCtx.resolution_preference ?? null,\n  invalid_reason_code: caseCtx.invalid_reason_code ?? null,\n  invalid_reason_detail: caseCtx.invalid_reason_detail ?? null,\n};\n\nconst AUTONOMOUS_REFUND_THRESHOLD = 500.0;\nconst AUTONOMOUS_REPLACEMENT_THRESHOLD = 500.0;\nconst RETURN_WINDOW_DAYS = 7;\n\nconst toNum = (v) => {\n  const n = Number(v);\n  return Number.isFinite(n) ? n : null;\n};\n\nconst normalize = (v) => String(v || \"\").trim().toLowerCase();\n\nconst parseDate = (v) => {\n  if (!v) return null;\n  const d = new Date(v);\n  return Number.isNaN(d.getTime()) ? null : d;\n};\n\nconst daysSince = (dateLike) => {\n  const d = parseDate(dateLike);\n  if (!d) return null;\n  const now = new Date();\n  const ms = now.getTime() - d.getTime();\n  return Math.floor(ms / (1000 * 60 * 60 * 24));\n};\n\nconst daysBetween = (fromLike, toLike) => {\n  const from = parseDate(fromLike);\n  const to = parseDate(toLike);\n  if (!from || !to) return null;\n  const ms = to.getTime() - from.getTime();\n  return Math.floor(ms / (1000 * 60 * 60 * 24));\n};\n\nconst normalizeSubtype = (value) => {\n  const raw = normalize(value);\n\n  const aliases = {\n    package_never_arrived: \"non_receipt\",\n    delivery_late: \"delayed\",\n    wrong_delivery_address: \"exception\",\n    quality_issue: \"not_as_described\",\n    return_for_refund: \"return_request\",\n  };\n\n  return aliases[raw] || raw;\n};\n\nconst normalizeResolutionPreference = (value) => {\n  const raw = normalize(value);\n  return [\"refund\", \"replacement\", \"return\"].includes(raw) ? raw : null;\n};\n\nconst getPaymentRecord = (paymentRecords = []) =>\n  paymentRecords.find((p) => normalize(p.transaction_type) === \"payment\") || null;\n\nconst getRefundRecords = (paymentRecords = []) =>\n  paymentRecords.filter((p) => normalize(p.transaction_type) === \"refund\");\n\nconst hasPriorRefund = (paymentRecords = []) => {\n  const refunds = getRefundRecords(paymentRecords);\n  const totalRefunded = refunds.reduce((sum, p) => sum + (toNum(p.amount) || 0), 0);\n\n  return {\n    exists: refunds.length > 0,\n    count: refunds.length,\n    totalRefunded,\n  };\n};\n\nconst getTrackingEvent = (trackingEvents = [], eventType) =>\n  (Array.isArray(trackingEvents) ? trackingEvents : []).find(\n    (e) => normalize(e.event_type) === normalize(eventType)\n  ) || null;\n\nconst sumItemAmount = (items = []) => {\n  if (!Array.isArray(items) || items.length === 0) return 0;\n\n  return items.reduce((sum, item) => {\n    const qty = toNum(item.quantity_ordered ?? item.quantity) ?? 0;\n    const price = toNum(item.unit_price) ?? 0;\n    return sum + qty * price;\n  }, 0);\n};\n\nconst checkInventory = (items = []) => {\n  if (!Array.isArray(items) || items.length === 0) {\n    return {\n      feasible: false,\n      reason: \"Replacement requested but no affected order item inventory data is available\",\n    };\n  }\n\n  const blockedItems = items.filter((item) => {\n    const available = toNum(item.quantity_available_now);\n    const ordered = toNum(item.quantity_ordered ?? item.quantity);\n    if (available == null || ordered == null) return true;\n    return available < ordered;\n  });\n\n  if (blockedItems.length > 0) {\n    const names = blockedItems\n      .map((i) => i.product_name || i.item_id || \"Unknown item\")\n      .join(\", \");\n\n    return {\n      feasible: false,\n      reason: `Replacement requested but inventory is insufficient or unknown for: ${names}`,\n    };\n  }\n\n  return {\n    feasible: true,\n    reason: \"All affected items have sufficient inventory\",\n  };\n};\n\nconst allowedResolutionTypes = {\n  duplicate_charge: new Set([\"refund\"]),\n  not_as_described: new Set([\"refund\", \"replacement\"]),\n  damaged_goods: new Set([\"refund\", \"replacement\"]),\n  wrong_item: new Set([\"refund\", \"replacement\"]),\n  partial_fulfillment: new Set([\"refund\"]),\n  return_request: new Set([\"return\"]),\n  changed_mind: new Set([\"return\"]),\n  other: new Set([\"refund\"]),\n  non_receipt: new Set([\"refund\", \"replacement\"]),\n  delayed: new Set([\"refund\"]),\n  exception: new Set([\"refund\"]),\n  lost: new Set([\"refund\", \"replacement\"]),\n};\n\nconst defaultResolutionTypeForSubtype = (subtype) => {\n  if (subtype === \"return_request\" || subtype === \"changed_mind\") return \"return\";\n  if (subtype === \"duplicate_charge\" || subtype === \"partial_fulfillment\" || subtype === \"other\") return \"refund\";\n  if (subtype === \"delayed\" || subtype === \"exception\") return \"refund\";\n  if (subtype === \"non_receipt\" || subtype === \"lost\") return \"refund\";\n  return \"refund\";\n};\n\nconst resolveResolutionType = (subtype, preference) => {\n  const allowed = allowedResolutionTypes[subtype] || new Set([\"refund\"]);\n  if (preference && allowed.has(preference)) return preference;\n  const fallback = defaultResolutionTypeForSubtype(subtype);\n  if (allowed.has(fallback)) return fallback;\n  return [...allowed][0] || \"refund\";\n};\n\nconst pickBool = (value, nestedKey = \"detected\") => {\n  if (typeof value === \"boolean\") return value;\n  if (value && typeof value === \"object\") {\n    if (typeof value.visible === \"boolean\") return value.visible;\n    if (typeof value[nestedKey] === \"boolean\") return value[nestedKey];\n  }\n  return null;\n};\n\nconst makeDecision = ({\n  triage_decision,\n  resolution_type,\n  reason,\n  eligible_amount = null,\n  requires_human_review,\n  tracking_evidence = null,\n  replacement_items = null,\n  shipping_fee_refund_only = null,\n  affected_item_ids = null,\n  invalid_reason_code = null,\n  invalid_reason_detail = null,\n}) => {\n  const json = {\n    triage_decision,\n    resolution_type,\n    reason,\n    eligible_amount,\n    requires_human_review,\n    case_id: caseData.case_id,\n  };\n\n  if (tracking_evidence) json.tracking_evidence = tracking_evidence;\n  if (Array.isArray(replacement_items)) json.replacement_items = replacement_items;\n  if (shipping_fee_refund_only === true) json.shipping_fee_refund_only = true;\n  if (Array.isArray(affected_item_ids) && affected_item_ids.length > 0) json.affected_item_ids = affected_item_ids;\n  if (invalid_reason_code) json.invalid_reason_code = invalid_reason_code;\n  if (invalid_reason_detail) json.invalid_reason_detail = invalid_reason_detail;\n\n  return [{ json }];\n};\n\nconst approveExecuting = (payload) =>\n  makeDecision({\n    ...payload,\n    triage_decision: \"approved_executing\",\n    requires_human_review: false,\n  });\n\nconst awaitApproval = (payload) =>\n  makeDecision({\n    ...payload,\n    triage_decision: \"awaiting_approval\",\n    requires_human_review: true,\n  });\n\nconst escalateHuman = (payload) =>\n  makeDecision({\n    ...payload,\n    triage_decision: \"escalated_human_required\",\n    requires_human_review: true,\n  });\n\nconst awaitCustomerDecision = (payload) =>\n  makeDecision({\n    ...payload,\n    triage_decision: \"awaiting_customer_decision\",\n    requires_human_review: false,\n  });\n\n// -----------------------------------------------------------------------------\n// DATA EXTRACTION\n// -----------------------------------------------------------------------------\nconst disputeSubtype = normalizeSubtype(caseData.dispute_subtype);\nconst requestedResolutionPreference = normalizeResolutionPreference(caseData.resolution_preference);\nconst resolvedResolutionType = resolveResolutionType(disputeSubtype, requestedResolutionPreference);\n\nconst orderData = bundle.order_data || bundle.order || {};\nconst shipmentData = bundle.shipment_data || bundle.shipment || {};\nconst paymentRecords = Array.isArray(bundle.payment_records) ? bundle.payment_records : [];\nconst trackingEvents = Array.isArray(bundle.tracking_events) ? bundle.tracking_events : [];\nconst orderItems = Array.isArray(bundle.order_items_detail) ? bundle.order_items_detail : [];\nconst affectedItems =\n  Array.isArray(bundle.affected_items_detail) && bundle.affected_items_detail.length > 0\n    ? bundle.affected_items_detail\n    : orderItems;\nconst affectedItemIds = Array.isArray(bundle.affected_item_ids) ? bundle.affected_item_ids : [];\n\nconst refundFacts = facts.refund || {};\nconst deliveryFacts = facts.delivery || {};\nconst proofFacts = facts.proof || {};\n\nconst paymentRecord = getPaymentRecord(paymentRecords);\nconst priorRefund = hasPriorRefund(paymentRecords);\n\nconst paymentStatus = normalize(\n  refundFacts.payment_status ||\n  paymentRecord?.status ||\n  null\n);\n\nconst paymentConfirmed = [\"confirmed\", \"completed\", \"paid\", \"success\", \"succeeded\"].includes(paymentStatus);\n\nconst orderStatus = normalize(\n  refundFacts.order_status ||\n  orderData.order_status ||\n  orderData.status ||\n  null\n);\n\nconst orderStatusEligible = [\"fulfilled\", \"returned\"].includes(orderStatus);\n\nconst totalOrderAmount =\n  toNum(refundFacts.transaction_amount) ??\n  toNum(orderData.total_amount) ??\n  toNum(paymentRecord?.amount) ??\n  0;\n\nconst affectedAmount =\n  affectedItems.length > 0\n    ? sumItemAmount(affectedItems)\n    : totalOrderAmount;\n\nconst replacementAmount = affectedAmount || totalOrderAmount;\n\nconst shippingFee =\n  toNum(orderData.shipping_fee) ??\n  toNum(orderData.delivery_fee) ??\n  0;\n\nconst deliveredEvent = getTrackingEvent(trackingEvents, \"delivered\");\nconst lostEvent = getTrackingEvent(trackingEvents, \"lost\");\nconst exceptionEvent =\n  getTrackingEvent(trackingEvents, \"exception\") ||\n  getTrackingEvent(trackingEvents, \"delayed\");\nconst inTransitEvent = getTrackingEvent(trackingEvents, \"in_transit\");\n\nconst windowBasis =\n  shipmentData.delivered_at ||\n  orderData.delivered_at ||\n  orderData.fulfilled_at ||\n  orderData.order_date ||\n  deliveredEvent?.event_time ||\n  null;\n\nconst daysWindow =\n  typeof refundFacts.days_since_basis_date === \"number\"\n    ? refundFacts.days_since_basis_date\n    : daysSince(windowBasis);\n\nconst withinReturnWindow =\n  typeof refundFacts.within_return_window === \"boolean\"\n    ? refundFacts.within_return_window\n    : (daysWindow != null ? daysWindow >= 0 && daysWindow <= RETURN_WINDOW_DAYS : false);\n\nconst inventoryCheck =\n  resolvedResolutionType === \"replacement\"\n    ? checkInventory(affectedItems)\n    : { feasible: null, reason: null };\n\n// -----------------------------------------------------------------------------\n// PROOF FACTS\n// -----------------------------------------------------------------------------\nconst proofRequired =\n  proofFacts.proof_required === true ||\n  bundle.proof_requirements?.required === true;\n\nconst proofUploads = Array.isArray(proofFacts.proof_uploads)\n  ? proofFacts.proof_uploads\n  : Array.isArray(bundle.proof_uploads)\n    ? bundle.proof_uploads\n    : [];\n\nconst proofPresent =\n  proofFacts.proof_present === true ||\n  proofUploads.length > 0 ||\n  bundle.evidence_bundle?.proof_present === true;\n\nconst proofAnalysis =\n  proofFacts.proof_analysis ||\n  bundle.proof_analysis ||\n  bundle.evidence_bundle?.proof_analysis ||\n  null;\n\nconst proofAnalysisStatus =\n  normalize(\n    proofFacts.proof_analysis_status ||\n    bundle.proof_analysis_status ||\n    bundle.evidence_bundle?.proof_analysis_status ||\n    null\n  );\n\nconst damageDetected = pickBool(proofAnalysis?.damage_detected, \"detected\");\nconst wrongItemDetected = pickBool(proofAnalysis?.wrong_item_signals, \"detected\");\nconst missingItemDetected = pickBool(proofAnalysis?.missing_item_signals, \"detected\");\nconst notAsDescribedDetected = pickBool(proofAnalysis?.not_as_described_signals, \"detected\");\n\nconst proofSupportsSubtype = (() => {\n  switch (disputeSubtype) {\n    case \"damaged_goods\":\n      return damageDetected === true;\n    case \"wrong_item\":\n      return wrongItemDetected === true;\n    case \"partial_fulfillment\":\n      return missingItemDetected === true;\n    case \"not_as_described\":\n      return notAsDescribedDetected === true || damageDetected === true || wrongItemDetected === true;\n    default:\n      return null;\n  }\n})();\n\nconst proofContradictsSubtype = (() => {\n  if (!proofPresent || !proofAnalysis) return false;\n  switch (disputeSubtype) {\n    case \"damaged_goods\":\n      return damageDetected === false;\n    case \"wrong_item\":\n      return wrongItemDetected === false;\n    case \"partial_fulfillment\":\n      return missingItemDetected === false;\n    case \"not_as_described\":\n      return notAsDescribedDetected === false && damageDetected === false && wrongItemDetected === false;\n    default:\n      return false;\n  }\n})();\n\n// -----------------------------------------------------------------------------\n// MATRIX GUARDRAILS\n// -----------------------------------------------------------------------------\nconst allowedResolutionForSubtype = allowedResolutionTypes[disputeSubtype] || new Set([\"refund\"]);\n\nif (!disputeSubtype) {\n  return escalateHuman({\n    resolution_type: null,\n    reason: \"Canonical dispute subtype is missing - manual review required\",\n    eligible_amount: null,\n  });\n}\n\nif (!allowedResolutionForSubtype.has(resolvedResolutionType)) {\n  return awaitCustomerDecision({\n    resolution_type: null,\n    reason: `Requested resolution is not allowed for subtype '${disputeSubtype}'`,\n    eligible_amount: null,\n    invalid_reason_code: \"unsupported_resolution_type\",\n    invalid_reason_detail: `Resolution preference '${requestedResolutionPreference || \"unknown\"}' is not valid for subtype '${disputeSubtype}'.`,\n  });\n}\n\nif (resolvedResolutionType === \"refund\" && priorRefund.exists) {\n  return escalateHuman({\n    resolution_type: \"refund\",\n    reason: `Duplicate refund risk: ${priorRefund.count} prior refund record(s), total refunded THB ${priorRefund.totalRefunded.toFixed(2)}`,\n    eligible_amount: 0,\n  });\n}\n\nif (!paymentConfirmed) {\n  return escalateHuman({\n    resolution_type: resolvedResolutionType || \"refund\",\n    reason: `Payment not confirmed (status: ${paymentStatus || \"unknown\"})`,\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n  });\n}\n\nif (\n  [\"non_receipt\", \"lost\"].includes(disputeSubtype) &&\n  deliveredEvent\n) {\n  return escalateHuman({\n    resolution_type: resolvedResolutionType,\n    reason: \"Delivery marked delivered but customer disputes receipt - investigation required\",\n    tracking_evidence: `Delivered at ${deliveredEvent.location || \"unknown\"} on ${deliveredEvent.event_time || \"unknown\"}`,\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n  });\n}\n\nif (proofRequired && !proofPresent) {\n  return awaitCustomerDecision({\n    resolution_type: resolvedResolutionType,\n    reason: \"Required proof was not provided for this dispute type\",\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n    invalid_reason_code: \"insufficient_proof\",\n    invalid_reason_detail: \"This dispute type requires supporting photo evidence before automated triage can proceed.\",\n  });\n}\n\nif (proofRequired && proofAnalysisStatus === \"failed\") {\n  return escalateHuman({\n    resolution_type: resolvedResolutionType,\n    reason: \"Proof analysis failed and requires human review\",\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n  });\n}\n\nif (proofRequired && proofPresent && proofContradictsSubtype) {\n  return awaitCustomerDecision({\n    resolution_type: resolvedResolutionType,\n    reason: \"Uploaded proof does not appear to support the reported issue\",\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n    invalid_reason_code: \"proof_contradicts_claim\",\n    invalid_reason_detail: \"The uploaded photos do not appear to support the reported dispute type.\",\n  });\n}\n\nif (proofRequired && proofPresent && proofSupportsSubtype === false) {\n  return awaitCustomerDecision({\n    resolution_type: resolvedResolutionType,\n    reason: \"Uploaded proof is currently insufficient to support the reported issue\",\n    eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n    invalid_reason_code: \"insufficient_proof\",\n    invalid_reason_detail: \"The uploaded photos do not provide enough support for the reported dispute type.\",\n  });\n}\n\n// -----------------------------------------------------------------------------\n// SUBTYPE ROUTING\n// -----------------------------------------------------------------------------\nswitch (disputeSubtype) {\n  case \"duplicate_charge\": {\n    if (totalOrderAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n      return approveExecuting({\n        resolution_type: \"refund\",\n        reason: \"Duplicate charge refund approved within autonomous threshold\",\n        eligible_amount: totalOrderAmount,\n      });\n    }\n\n    return awaitApproval({\n      resolution_type: \"refund\",\n      reason: `Duplicate charge refund exceeds autonomous threshold (THB ${totalOrderAmount.toFixed(2)})`,\n      eligible_amount: totalOrderAmount,\n    });\n  }\n\n  case \"not_as_described\": {\n    if (resolvedResolutionType === \"replacement\") {\n      if (!inventoryCheck.feasible) {\n        return awaitCustomerDecision({\n          resolution_type: \"replacement\",\n          reason: inventoryCheck.reason,\n          eligible_amount: replacementAmount,\n          invalid_reason_code: \"insufficient_inventory\",\n          invalid_reason_detail: inventoryCheck.reason,\n        });\n      }\n\n      if (replacementAmount <= AUTONOMOUS_REPLACEMENT_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"replacement\",\n          reason: \"Replacement approved: inventory available and amount within autonomous threshold\",\n          replacement_items: affectedItems,\n          affected_item_ids: affectedItemIds,\n          eligible_amount: replacementAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"replacement\",\n        reason: `Replacement amount THB ${replacementAmount.toFixed(2)} exceeds autonomous threshold`,\n        replacement_items: affectedItems,\n        affected_item_ids: affectedItemIds,\n        eligible_amount: replacementAmount,\n      });\n    }\n\n    if (!withinReturnWindow) {\n      return awaitCustomerDecision({\n        resolution_type: \"refund\",\n        reason: `${daysWindow ?? \"Unknown\"} days since delivery exceeds 7-day policy window`,\n        eligible_amount: affectedAmount || totalOrderAmount,\n        invalid_reason_code: \"outside_return_window\",\n        invalid_reason_detail: \"This dispute falls outside the applicable refund window.\",\n      });\n    }\n\n    if ((affectedAmount || totalOrderAmount) <= AUTONOMOUS_REFUND_THRESHOLD) {\n      return approveExecuting({\n        resolution_type: \"refund\",\n        reason: \"Refund approved within autonomous threshold\",\n        eligible_amount: affectedAmount || totalOrderAmount,\n      });\n    }\n\n    return awaitApproval({\n      resolution_type: \"refund\",\n      reason: `Refund amount THB ${(affectedAmount || totalOrderAmount).toFixed(2)} exceeds autonomous threshold`,\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"damaged_goods\": {\n    if (resolvedResolutionType === \"replacement\") {\n      if (!inventoryCheck.feasible) {\n        return awaitCustomerDecision({\n          resolution_type: \"replacement\",\n          reason: inventoryCheck.reason,\n          eligible_amount: replacementAmount,\n          invalid_reason_code: \"insufficient_inventory\",\n          invalid_reason_detail: inventoryCheck.reason,\n        });\n      }\n\n      if (replacementAmount <= AUTONOMOUS_REPLACEMENT_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"replacement\",\n          reason: \"Replacement approved for damaged goods within autonomous threshold\",\n          replacement_items: affectedItems,\n          affected_item_ids: affectedItemIds,\n          eligible_amount: replacementAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"replacement\",\n        reason: `Damaged goods replacement exceeds autonomous threshold (THB ${replacementAmount.toFixed(2)})`,\n        replacement_items: affectedItems,\n        affected_item_ids: affectedItemIds,\n        eligible_amount: replacementAmount,\n      });\n    }\n\n    if (!withinReturnWindow) {\n      return awaitCustomerDecision({\n        resolution_type: \"refund\",\n        reason: `${daysWindow ?? \"Unknown\"} days since delivery exceeds 7-day policy window`,\n        eligible_amount: affectedAmount || totalOrderAmount,\n        invalid_reason_code: \"outside_return_window\",\n        invalid_reason_detail: \"This damaged-goods refund falls outside the applicable policy window.\",\n      });\n    }\n\n    if ((affectedAmount || totalOrderAmount) <= AUTONOMOUS_REFUND_THRESHOLD) {\n      return approveExecuting({\n        resolution_type: \"refund\",\n        reason: \"Damaged goods refund approved within autonomous threshold\",\n        eligible_amount: affectedAmount || totalOrderAmount,\n      });\n    }\n\n    return awaitApproval({\n      resolution_type: \"refund\",\n      reason: `Damaged goods refund exceeds autonomous threshold (THB ${(affectedAmount || totalOrderAmount).toFixed(2)})`,\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"wrong_item\": {\n    if (resolvedResolutionType === \"replacement\") {\n      if (!inventoryCheck.feasible) {\n        return awaitCustomerDecision({\n          resolution_type: \"replacement\",\n          reason: inventoryCheck.reason,\n          eligible_amount: replacementAmount,\n          invalid_reason_code: \"insufficient_inventory\",\n          invalid_reason_detail: inventoryCheck.reason,\n        });\n      }\n\n      if (replacementAmount <= AUTONOMOUS_REPLACEMENT_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"replacement\",\n          reason: \"Wrong-item replacement approved within autonomous threshold\",\n          replacement_items: affectedItems,\n          affected_item_ids: affectedItemIds,\n          eligible_amount: replacementAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"replacement\",\n        reason: `Wrong-item replacement exceeds autonomous threshold (THB ${replacementAmount.toFixed(2)})`,\n        replacement_items: affectedItems,\n        affected_item_ids: affectedItemIds,\n        eligible_amount: replacementAmount,\n      });\n    }\n\n    if (!withinReturnWindow) {\n      return awaitCustomerDecision({\n        resolution_type: \"refund\",\n        reason: `${daysWindow ?? \"Unknown\"} days since delivery exceeds 7-day policy window`,\n        eligible_amount: affectedAmount || totalOrderAmount,\n        invalid_reason_code: \"outside_return_window\",\n        invalid_reason_detail: \"This wrong-item refund falls outside the applicable policy window.\",\n      });\n    }\n\n    if ((affectedAmount || totalOrderAmount) <= AUTONOMOUS_REFUND_THRESHOLD) {\n      return approveExecuting({\n        resolution_type: \"refund\",\n        reason: \"Wrong-item refund approved within autonomous threshold\",\n        eligible_amount: affectedAmount || totalOrderAmount,\n      });\n    }\n\n    return awaitApproval({\n      resolution_type: \"refund\",\n      reason: `Wrong-item refund exceeds autonomous threshold (THB ${(affectedAmount || totalOrderAmount).toFixed(2)})`,\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"partial_fulfillment\": {\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: \"Partial fulfillment requires human review per decision matrix\",\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"return_request\":\n  case \"changed_mind\": {\n    if (!orderStatusEligible) {\n      return awaitCustomerDecision({\n        resolution_type: \"return\",\n        reason: `Order status '${orderStatus || \"unknown\"}' is not eligible for return`,\n        eligible_amount: totalOrderAmount,\n        invalid_reason_code: \"non_returnable_item\",\n        invalid_reason_detail: `Order status '${orderStatus || \"unknown\"}' is not eligible for return processing.`,\n      });\n    }\n\n    if (!withinReturnWindow) {\n      return awaitCustomerDecision({\n        resolution_type: \"return\",\n        reason: `${daysWindow ?? \"Unknown\"} days since delivery exceeds 7-day policy window`,\n        eligible_amount: totalOrderAmount,\n        invalid_reason_code: \"outside_return_window\",\n        invalid_reason_detail: \"This return request falls outside the applicable return window.\",\n      });\n    }\n\n    return awaitApproval({\n      resolution_type: \"return\",\n      reason: \"Return request requires approval and inspection; returns are never autonomous\",\n      eligible_amount: totalOrderAmount,\n    });\n  }\n\n  case \"other\": {\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: \"Uncategorized dispute requires human review\",\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"non_receipt\": {\n    if (resolvedResolutionType === \"replacement\") {\n      if (!inventoryCheck.feasible) {\n        return awaitCustomerDecision({\n          resolution_type: \"replacement\",\n          reason: inventoryCheck.reason,\n          eligible_amount: replacementAmount,\n          invalid_reason_code: \"insufficient_inventory\",\n          invalid_reason_detail: inventoryCheck.reason,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"replacement\",\n        reason: \"Non-receipt replacement requires approval\",\n        replacement_items: affectedItems,\n        affected_item_ids: affectedItemIds,\n        eligible_amount: replacementAmount,\n      });\n    }\n\n    if (exceptionEvent && !deliveredEvent) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: \"Carrier exception detected before delivery; refund approved within autonomous threshold\",\n          tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `Carrier exception refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    const daysInTransit = daysSince(inTransitEvent?.event_time);\n    if (inTransitEvent && !deliveredEvent && daysInTransit != null && daysInTransit > 7) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: `Package has been in transit for ${daysInTransit} days; refund approved within autonomous threshold`,\n          tracking_evidence: `Last tracking update: in_transit on ${inTransitEvent.event_time || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `In-transit non-receipt refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Last tracking update: in_transit on ${inTransitEvent.event_time || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: \"Non-receipt requires human investigation\",\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"delayed\": {\n    const deliveredAt =\n      deliveredEvent?.event_time ||\n      orderData.delivered_at ||\n      orderData.fulfilled_at ||\n      null;\n    const estimatedDelivery =\n      deliveryFacts.estimated_delivery ||\n      shipmentData.estimated_delivery ||\n      null;\n\n    const overdueDays =\n      deliveredAt && estimatedDelivery\n        ? daysBetween(estimatedDelivery, deliveredAt)\n        : null;\n\n    if (overdueDays != null && overdueDays > 3) {\n      if (shippingFee <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: \"Delivery SLA breached; shipping-fee refund approved\",\n          shipping_fee_refund_only: true,\n          eligible_amount: shippingFee,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `Delivery SLA shipping-fee refund exceeds autonomous threshold (THB ${shippingFee.toFixed(2)})`,\n        shipping_fee_refund_only: true,\n        eligible_amount: shippingFee,\n      });\n    }\n\n    if (exceptionEvent && !deliveredEvent) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: \"Carrier exception detected before delivery; refund approved within autonomous threshold\",\n          tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `Carrier exception refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    const daysInTransit = daysSince(inTransitEvent?.event_time);\n    if (inTransitEvent && !deliveredEvent && daysInTransit != null && daysInTransit > 7) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: `Package has been in transit for ${daysInTransit} days; refund approved within autonomous threshold`,\n          tracking_evidence: `Last tracking update: in_transit on ${inTransitEvent.event_time || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `In-transit delay refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Last tracking update: in_transit on ${inTransitEvent.event_time || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: \"Delivery delay does not yet satisfy deterministic approval conditions\",\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"exception\": {\n    if (exceptionEvent && !deliveredEvent) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: \"Carrier exception detected before delivery; refund approved within autonomous threshold\",\n          tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `Carrier exception refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Exception event: ${exceptionEvent.event_type || \"unknown\"} at ${exceptionEvent.location || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: \"Carrier exception requires human review\",\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n\n  case \"lost\": {\n    if (resolvedResolutionType === \"replacement\") {\n      if (!inventoryCheck.feasible) {\n        return awaitCustomerDecision({\n          resolution_type: \"replacement\",\n          reason: inventoryCheck.reason,\n          eligible_amount: replacementAmount,\n          invalid_reason_code: \"insufficient_inventory\",\n          invalid_reason_detail: inventoryCheck.reason,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"replacement\",\n        reason: \"Lost-package replacement requires approval\",\n        replacement_items: affectedItems,\n        affected_item_ids: affectedItemIds,\n        eligible_amount: replacementAmount,\n      });\n    }\n\n    if (lostEvent && !deliveredEvent) {\n      const refundAmount = affectedAmount || totalOrderAmount;\n      if (refundAmount <= AUTONOMOUS_REFUND_THRESHOLD) {\n        return approveExecuting({\n          resolution_type: \"refund\",\n          reason: \"Lost-package refund approved within autonomous threshold\",\n          tracking_evidence: `Lost event at ${lostEvent.location || \"unknown\"} on ${lostEvent.event_time || \"unknown\"}`,\n          eligible_amount: refundAmount,\n        });\n      }\n\n      return awaitApproval({\n        resolution_type: \"refund\",\n        reason: `Lost-package refund exceeds autonomous threshold (THB ${refundAmount.toFixed(2)})`,\n        tracking_evidence: `Lost event at ${lostEvent.location || \"unknown\"} on ${lostEvent.event_time || \"unknown\"}`,\n        eligible_amount: refundAmount,\n      });\n    }\n\n    return escalateHuman({\n      resolution_type: resolvedResolutionType,\n      reason: \"Lost-package claim requires human investigation\",\n      eligible_amount: resolvedResolutionType === \"replacement\" ? replacementAmount : affectedAmount || totalOrderAmount,\n    });\n  }\n\n  default: {\n    return escalateHuman({\n      resolution_type: \"refund\",\n      reason: `Unsupported canonical subtype '${disputeSubtype || \"unknown\"}' requires manual review`,\n      eligible_amount: affectedAmount || totalOrderAmount,\n    });\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        592
+      ],
+      "id": "bceea615-c614-43e6-9606-68579f79e94b",
+      "name": "Deterministic Triage Logic"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.case_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  status: $json.status,\n  resolution_path: $json.resolution_path,\n  triage_decision: $json.triage_decision\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -608,
+        304
+      ],
+      "id": "68514535-d7be-469c-b2d8-eed2768f003b",
+      "name": "Update - Approved Executing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/approved",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret-change-in-production"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $json.case_id || $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -160,
+        304
+      ],
+      "id": "b19a6a3f-1bd9-481f-9796-5a16c146c98c",
+      "name": "Trigger Approved Execution"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:5678/webhook/resolution-plan",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "dev-webhook-secret-change-in-production"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $json.case_id || $json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fa3a152a-a2e2-4c85-ab8a-432e17a9d19f",
+      "name": "Trigger Resolution Plan (Autonomous)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -384,
+        304
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  case_id: $json.case_id,\n  status: \"approved_executing\",\n  resolution_path: \"autonomous\",\n  triage_decision: {\n    triage_decision: $json.triage_decision,\n    resolution_type: $json.resolution_type,\n    reason: $json.reason,\n    eligible_amount: $json.eligible_amount,\n    tracking_evidence: $json.tracking_evidence ?? null,\n    replacement_items: $json.replacement_items ?? null,\n    requires_human_review: false\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        304
+      ],
+      "id": "0bf33336-1643-4d5e-b4e5-5c401eafce02",
+      "name": "Build Patch - Approve Executing"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  case_id: $json.case_id,\n  status: \"awaiting_approval\",\n  resolution_path: \"approval\",\n  triage_decision: {\n    triage_decision: $json.triage_decision || \"awaiting_approval\",\n    resolution_type: $json.resolution_type || null,\n    reason: $json.reason || \"\",\n    eligible_amount: $json.eligible_amount ?? null,\n    tracking_evidence: $json.tracking_evidence ?? null,\n    replacement_items: $json.replacement_items ?? null,\n    requires_human_review: true\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        688
+      ],
+      "id": "87b21916-9997-4a41-a895-cc1a3823b27a",
+      "name": "Build Patch - Awaiting Approval"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  case_id: $json.case_id,\n  status: \"escalated_human_required\",\n  resolution_path: \"escalation\",\n  triage_decision: {\n    triage_decision: $json.triage_decision || \"escalation\",\n    resolution_type: $json.resolution_type || null,\n    reason: $json.reason || \"\",\n    eligible_amount: $json.eligible_amount ?? null,\n    tracking_evidence: $json.tracking_evidence ?? null,\n    replacement_items: $json.replacement_items ?? null,\n    requires_human_review: true\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        496
+      ],
+      "id": "226f7e59-80f1-4151-9ce5-e937e33af577",
+      "name": "Build Patch - Escalated"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  case_id: $json.case_id,\n  status: \"awaiting_approval\",\n  resolution_path: \"approval\",\n  triage_decision: {\n    triage_decision: $json.triage_decision || \"awaiting_approval\",\n    resolution_type: $json.resolution_type || null,\n    reason: $json.reason || \"\",\n    eligible_amount: $json.eligible_amount ?? null,\n    tracking_evidence: $json.tracking_evidence ?? null,\n    replacement_items: $json.replacement_items ?? null,\n    requires_human_review: true\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        880
+      ],
+      "id": "d4934d39-8ddc-401e-b141-6e25b1fe4ad9",
+      "name": "Build Patch - Awaiting Customer Decision"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.case_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -290,16 +467,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"case_id\": $json.case_id\n}",
+        "jsonBody": "={{ {\n  status: $json.status,\n  resolution_path: $json.resolution_path,\n  triage_decision: $json.triage_decision,\n  invalid_reason_code: $json.invalid_reason_code,\n  invalid_reason_detail: $json.invalid_reason_detail\n} }}",
         "options": {}
       },
-      "id": "4b88a8c1-5223-4c0b-a30f-6f9c1dcb6a2b",
-      "name": "Trigger Summarization",
+      "id": "86f83277-4ba5-4a99-9cfa-bd6f32dc5790",
+      "name": "Update - Awaiting Customer Decision",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2160,
-        360
+        -608,
+        880
       ]
     }
   ],
@@ -341,38 +518,7 @@
       "main": [
         [
           {
-            "node": "Basic LLM Chain — Triage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Basic LLM Chain — Triage": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "OpenAI Chat Model — Triage",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ],
-      "main": [
-        [
-          {
-            "node": "Parse + Validate",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse + Validate": {
-      "main": [
-        [
-          {
-            "node": "Route on Decision",
+            "node": "Deterministic Triage Logic",
             "type": "main",
             "index": 0
           }
@@ -383,21 +529,28 @@
       "main": [
         [
           {
-            "node": "Update - Awaiting Approval",
+            "node": "Build Patch - Approve Executing",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Update - Escalated",
+            "node": "Build Patch - Escalated",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Update - Escalated",
+            "node": "Build Patch - Awaiting Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Patch - Awaiting Customer Decision",
             "type": "main",
             "index": 0
           }
@@ -425,15 +578,96 @@
           }
         ]
       ]
+    },
+    "Deterministic Triage Logic": {
+      "main": [
+        [
+          {
+            "node": "Route on Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update - Approved Executing": {
+      "main": [
+        [
+          {
+            "node": "Trigger Resolution Plan (Autonomous)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Resolution Plan (Autonomous)": {
+      "main": [
+        [
+          {
+            "node": "Trigger Approved Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Patch - Approve Executing": {
+      "main": [
+        [
+          {
+            "node": "Update - Approved Executing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Patch - Awaiting Approval": {
+      "main": [
+        [
+          {
+            "node": "Update - Awaiting Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Patch - Escalated": {
+      "main": [
+        [
+          {
+            "node": "Update - Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Patch - Awaiting Customer Decision": {
+      "main": [
+        [
+          {
+            "node": "Update - Awaiting Customer Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "active": false,
-  "versionId": "b28fe1ee-7ac4-4c9e-8a02-5e94873d7a12",
+  "active": true,
+  "versionId": "0d193085-cf4c-4586-9599-c7e83107f54b",
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": true
   },
   "pinData": {}
 }

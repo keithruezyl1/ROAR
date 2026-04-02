@@ -1,33 +1,31 @@
 {
-  "name": "ROAR Workflow - Summarization Agent",
+  "name": "#4 ROAR Workflow - Summarization Agent",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "triage-escalation",
-        "responseMode": "lastNode",
         "options": {}
       },
-      "id": "1d40c92c-7d1e-4b0c-9cb6-3e6c7f3f3f10",
+      "id": "ee3df93d-571f-43d2-aebc-eb8a2ed591b2",
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
-        240
-      ]
+        0,
+        -96
+      ],
+      "webhookId": "a9c8f902-27ee-45d9-b297-fa32ef31d9a4"
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/cases/{{$json.body.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{$json.body.case_id}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Accept",
@@ -37,97 +35,95 @@
         },
         "options": {}
       },
-      "id": "b7b7a944-41a7-4e46-9c12-9a96957b0a7c",
+      "id": "a4496fcc-57e4-43a8-bd32-2821dd6304fd",
       "name": "Fetch Full Case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        480,
-        240
+        224,
+        -96
       ]
     },
     {
       "parameters": {
-        "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\n\nconst user_message = {\n  dispute_type: c.dispute_type ?? null,\n  order_id: c.order_id ?? null,\n  customer_name: c.customer_name ?? null,\n  information_bundle: c.information_bundle ?? null,\n  triage_decision: c.triage_decision ?? null,\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook Trigger'].json.body.case_id,\n  user_message,\n}];\n"
+        "jsCode": "const c = $items('Fetch Full Case')[0]?.json ?? {};\nconst bundle = c.information_bundle ?? {};\nconst triage = c.triage_decision ?? {};\n\nconst user_message = {\n  case: {\n    id: c.id ?? null,\n    status: c.status ?? null,\n    dispute_type: c.dispute_type ?? null,\n    dispute_subtype: c.dispute_subtype ?? null,\n    resolution_preference: c.resolution_preference ?? null,\n    order_id: c.order_id ?? null,\n    customer_name: c.customer_name ?? null,\n    customer_email: c.customer_email ?? null,\n    invalid_reason_code: c.invalid_reason_code ?? null,\n    invalid_reason_detail: c.invalid_reason_detail ?? null,\n    appeal_priority: c.appeal_priority ?? null,\n  },\n  triage_decision: triage,\n  information_bundle: bundle,\n  proof_context: {\n    proof_uploads: bundle.proof_uploads ?? c.proof_uploads ?? [],\n    proof_analysis: bundle.proof_analysis ?? c.proof_analysis ?? null,\n    proof_analysis_status: bundle.proof_analysis_status ?? c.proof_analysis_status ?? null,\n    evidence_bundle: bundle.evidence_bundle ?? c.evidence_bundle ?? null,\n  },\n  affected_items_detail: bundle.affected_items_detail ?? [],\n};\n\nreturn [{\n  case_id: c.id || $node['Webhook Trigger'].json.body.case_id,\n  user_message,\n}];"
       },
-      "id": "a45e6e3e-ec8a-4a71-90f1-3c44b43e3c01",
+      "id": "624137d9-1db4-4ed0-a761-e1c6234c1fe7",
       "name": "Build Summary Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        240
+        448,
+        -96
       ]
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ JSON.stringify($json.user_message) }}",
+        "prompt": "=={{ JSON.stringify($json.user_message) }}",
         "messages": {
           "messageValues": [
             {
-              "type": "SystemMessagePromptTemplate",
-              "message": "You are ROAR's summarization agent. Generate concise case summaries for escalation agents\n\nwho need to quickly understand a dispute before joining a live customer chat.\n\nGUIDELINES:\n\n- summary: 2-3 sentences maximum.\n\n- key_facts: 3-5 items, specific values preferred (amounts, statuses, dates).\n\n- recommended_action: one clear directive.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{ \"summary\": \"string\",\n\n\"key_facts\": [\"string\"],\n\n\"escalation_reason\": \"string\",\n\n\"recommended_action\": \"string\",\n\n\"data_sources_queried\": [\"oms\",\"logistics\"],\n\n\"policies_relevant\": [\"policy-slug\"] }"
+              "message": "=You are ROAR's summarization agent.\n\nGenerate an internal escalation handoff summary for a live CX agent who will review the case and may join the customer chat.\n\nGUIDELINES:\n- summary: 2-3 sentences maximum.\n- key_facts: 3-5 items, prefer specific values such as amounts, dates, statuses, subtype, requested resolution, proof status, and tracking/payment facts.\n- escalation_reason: one concise explanation of why automated resolution did not proceed.\n- recommended_action: one clear next step for the human agent.\n- data_sources_queried: list only the relevant sources actually reflected in the case bundle.\n- policies_relevant: include policy or matrix slugs when identifiable.\n\nDo not write a customer-facing message.\nDo not restate the entire bundle.\nFocus on what the live agent needs next.\n\nRESPONSE FORMAT --- valid JSON only:\n\n{\n  \"summary\": \"string\",\n  \"key_facts\": [\"string\"],\n  \"escalation_reason\": \"string\",\n  \"recommended_action\": \"string\",\n  \"data_sources_queried\": [\"oms\",\"logistics\"],\n  \"policies_relevant\": [\"policy-slug\"]\n}"
             }
           ]
         }
       },
-      "id": "60c4a4d9-5f3c-4d31-8e9a-1b3d44d5f7d8",
+      "id": "f71cfe0d-b1e3-4bf9-a746-b9ec4733c64f",
       "name": "Basic LLM Chain — Summary",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1,
       "position": [
-        960,
-        240
+        672,
+        -96
       ]
     },
     {
       "parameters": {
         "model": "gpt-4o-mini",
         "options": {
-          "temperature": 0.3,
           "maxTokens": 600,
-          "responseFormat": "json_object"
+          "responseFormat": "json_object",
+          "temperature": 0.3
         }
       },
-      "id": "96ab36c8-64a2-4f4d-a1f6-6a8d0f2dbd5a",
+      "id": "d6645122-5c4a-4f98-983f-a2e484476c14",
       "name": "OpenAI Chat Model — Summary",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        960,
-        420
+        752,
+        128
       ],
       "credentials": {
         "openAiApi": {
-          "name": "ROAR OpenAI"
+          "id": "NByBKEvh1nY13B5s",
+          "name": "OpenAi account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\n\nconst coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet summary;\ntry {\n  if ($json && typeof $json === 'object' && ($json.summary || $json.key_facts)) {\n    summary = $json;\n  } else {\n    const text = coerceToString($json);\n    summary = JSON.parse(text);\n  }\n} catch (e) {\n  summary = null;\n}\n\nconst valid = summary\n  && typeof summary.summary === 'string'\n  && Array.isArray(summary.key_facts)\n  && typeof summary.escalation_reason === 'string'\n  && typeof summary.recommended_action === 'string'\n  && Array.isArray(summary.data_sources_queried)\n  && Array.isArray(summary.policies_relevant);\n\nif (!valid) {\n  summary = {\n    summary: `Escalated ${caseData.dispute_type || 'unknown'} dispute for order ${caseData.order_id || 'unknown'}.`,\n    key_facts: [\n      caseData.triage_decision?.justification || 'Escalation due to triage error or incomplete data.',\n    ],\n    escalation_reason: 'LLM summarization failed, using minimal fallback.',\n    recommended_action: 'Human agent should review the full case bundle and triage decision.',\n    data_sources_queried: ['oms'],\n    policies_relevant: [],\n  };\n}\n\nreturn [{\n  case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n  summary,\n}];\n"
+        "jsCode": "const caseData = $items('Fetch Full Case')[0]?.json ?? {};\n\nconst coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nlet summary;\ntry {\n  if ($json && typeof $json === 'object' && ($json.summary || $json.key_facts)) {\n    summary = $json;\n  } else {\n    const text = coerceToString($json);\n    summary = JSON.parse(text);\n  }\n} catch (e) {\n  summary = null;\n}\n\nconst valid = summary\n  && typeof summary.summary === 'string'\n  && Array.isArray(summary.key_facts)\n  && typeof summary.escalation_reason === 'string'\n  && typeof summary.recommended_action === 'string'\n  && Array.isArray(summary.data_sources_queried)\n  && Array.isArray(summary.policies_relevant);\n\nif (!valid) {\n  summary = {\n    summary: `Escalated ${caseData.dispute_type || 'unknown'} dispute for order ${caseData.order_id || 'unknown'}.`,\n    key_facts: [\n      caseData.triage_decision?.reason || 'Escalation due to triage error or incomplete data.',\n    ],\n    escalation_reason: 'LLM summarization failed, using minimal fallback.',\n    recommended_action: 'Human agent should review the full case bundle and triage decision.',\n    data_sources_queried: ['oms'],\n    policies_relevant: [],\n  };\n}\n\nreturn [{\n  case_id: caseData.id || $node['Webhook Trigger'].json.body.case_id,\n  summary,\n}];"
       },
-      "id": "f2cc3b7f-6c8e-4f93-96a5-2cc2a6b074b8",
+      "id": "bd9706e0-f5c2-4fc9-8379-9116e0eb03c6",
       "name": "Parse + Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        240
+        1024,
+        -96
       ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{$json.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -136,31 +132,32 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"escalation_summary\": JSON.stringify($json.summary)\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=escalation_summary",
+              "value": "={{ \n  typeof $item(0, 'Parse + Validate').$json.summary === 'string'\n    ? $item(0, 'Parse + Validate').$json.summary\n    : ($item(0, 'Parse + Validate').$json.summary?.summary || \"\")\n}}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "9b4e7ed8-20ab-4e7a-9b0b-2c2be5a6b1d0",
+      "id": "9d66864d-7b7b-4706-8416-f301aebaa90a",
       "name": "Save Summary to Case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1440,
-        240
+        1248,
+        -96
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/cases/{{$json.case_id}}/messages",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.id || $node['Webhook Trigger'].json.body.case_id }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -168,17 +165,31 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": \"Your case has been escalated. A customer care specialist will join this conversation shortly.\",\n  \"sender_type\": \"system\"\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=content",
+              "value": "={{ \"Your case has been escalated to a live support specialist for review. We’ll update you as soon as possible.\" }}"
+            },
+            {
+              "name": "sender_type",
+              "value": "system"
+            },
+            {
+              "name": "=metadata",
+              "value": "={{ {\n  role: \"escalation_notice\",\n  stage: \"wf4_summarization\",\n  escalation_summary_saved: true\n} }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "0b2bdcf5-f7a1-4b5b-8f6b-5fbe84a12b8c",
+      "id": "1ffc00e5-49c9-49b9-a4c6-b1b625559422",
       "name": "Post Customer Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1680,
-        240
+        1472,
+        -96
       ]
     }
   ],
@@ -217,15 +228,6 @@
       ]
     },
     "Basic LLM Chain — Summary": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "OpenAI Chat Model — Summary",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ],
       "main": [
         [
           {
@@ -257,15 +259,30 @@
           }
         ]
       ]
+    },
+    "OpenAI Chat Model — Summary": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain — Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "active": false,
-  "versionId": "0f8a8e2b-9e6a-4af2-a1ea-1bb7e4d5a88c",
+  "active": true,
+  "versionId": "6dc6eaa8-696f-401f-b05d-3e7e151e7b1d",
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": true
   },
   "pinData": {}
 }

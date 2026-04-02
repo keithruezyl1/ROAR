@@ -1,5 +1,5 @@
 {
-  "name": "ROAR Workflow — Intake Agent",
+  "name": "#1 ROAR Workflow — Intake Agent",
   "nodes": [
     {
       "parameters": {
@@ -8,179 +8,175 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "b3c9df8e-3d78-4ed5-8c5d-fc31fd53c2b7",
+      "id": "6b7e603f-4f99-43a3-85dd-538d686fbaa7",
       "name": "Webhook — case-created",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
-        240
-      ]
+        592,
+        368
+      ],
+      "webhookId": "48e22b06-5c96-49bf-a6b7-9abdd721eb09"
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/cases/{{ $json.body.case_id }}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.body.case_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             }
           ]
         },
         "options": {}
       },
-      "id": "9bfe26c3-8f61-46a1-8ad0-b8e39aaf2ec1",
+      "id": "d64638a3-e485-48c8-9903-3adedb685c31",
       "name": "Fetch Case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        480,
-        240
+        816,
+        368
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/cases/{{ $json.body.case_id }}/messages",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.id }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             }
           ]
         },
         "options": {}
       },
-      "id": "3cc49b79-e86f-4d14-b1b4-6b3b468e1c8f",
+      "id": "5d2223ff-ac02-40e2-af45-3e4b9a6c3134",
       "name": "Fetch Transcript",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        720,
-        240
+        1264,
+        464
       ]
     },
     {
       "parameters": {
-        "jsCode": "const caseData = $item(0, 'Fetch Case').$json;\nconst transcript = ($item(0, 'Fetch Transcript').$json.messages || []).slice(-40);\n\nconst priorQuestions = transcript.filter(\n  (m) => m.sender_type === 'agent' && m.metadata?.role === 'intake_question'\n).length;\n\nconst userPayload = {\n  case: caseData,\n  transcript,\n  max_followup_questions: 3,\n};\n\nconst messages = [\n  {\n    role: 'user',\n    content: JSON.stringify(userPayload),\n  },\n];\n\nreturn [{ messages, priorQuestions }];\n"
+        "jsCode": "const caseData = $item(0, 'Fetch Case').$json;\nconst transcript = ($item(0, 'Fetch Transcript').$json.messages || []).slice(-40);\n\n// Count prior intake questions from AI/agent messages\nconst priorQuestions = transcript.filter(\n  (m) =>\n    (m.sender_type === 'ai' || m.sender_type === 'agent') &&\n    m.metadata?.role === 'intake_question'\n).length;\n\nconst userPayload = {\n  case: {\n    ...caseData,\n    status: caseData.status,\n    proof_requirements: caseData.proof_requirements || null,\n    proof_uploads: caseData.proof_uploads || [],\n    evidence_bundle: caseData.evidence_bundle || null,\n    invalid_reason_code: caseData.invalid_reason_code || null,\n    invalid_reason_detail: caseData.invalid_reason_detail || null,\n  },\n  transcript,\n  max_followup_questions: 3,\n  prior_followup_questions: priorQuestions,\n};\n\nconst sequencingRules = `\nYou are an intake triage assistant.\n\nOUTPUT MODES:\n1. Normal intake mode\n- Case is still gathering text context.\n- Allowed outputs:\n  - ask_question\n  - classify_intent\n\n2. Proof-required mode\n- Case status is awaiting_customer_proof.\n- Allowed outputs:\n  - ask_for_proof if proof is still missing\n  - classify_intent if proof is already uploaded and intake has enough context\n\n3. Customer-decision mode\n- Case status is awaiting_customer_decision.\n- Allowed outputs:\n  - await_customer_decision only\n\nKNOWN CONTEXT RULE (STRICT):\n- Treat case.dispute_subtype and case.resolution_preference as already confirmed from intake.\n- Do NOT ask the customer to restate the issue type.\n- Do NOT ask generic issue questions like \"What issue are you experiencing with your order?\"\n- Start from the next missing detail only.\n\nSTATE RULES (STRICT):\n- If case.status = awaiting_customer_proof:\n  - Do not ask normal intake questions unless proof is already present and one final missing text detail is required.\n  - If no proof uploads exist, action should be ask_for_proof.\n  - If proof uploads exist and enough intake context is present, action should be classify_intent.\n\n- If case.status = awaiting_customer_decision:\n  - Do not ask any intake questions.\n  - Do not classify intent again.\n  - action must be await_customer_decision.\n\n- If case.status = pending_triage:\n  - Follow the normal intake sequencing rules.\n\nQUESTION LIMIT RULE (STRICT):\n- Maximum follow-up questions per case: 3.\n- prior_followup_questions is already asked count.\n- If prior_followup_questions >= max_followup_questions, do not ask another question; classify intent when allowed by state.\n- If case.status = awaiting_customer_decision, action must still be await_customer_decision.\n- If case.status = awaiting_customer_proof and no proof uploads exist, action should be ask_for_proof.\n\nSEQUENCING RULES:\n- Ask only ONE information level per question.\n- Do not ask item-selection if the customer already confirmed the whole order / all items are affected.\n- Ask item-selection only when the customer indicates only some items / a subset is affected.\n\nFor damaged_goods:\n1) Ask SCOPE first:\n   \"Are all items affected, or only some items?\"\n2) If customer says only some, ask item selection:\n   \"Which items are affected?\"\n3) After scope/item clarification, ask DAMAGE DETAIL:\n   \"What type of damage occurred to the items?\"\n4) Then classify.\n\nFor wrong_item / partial_fulfillment:\n1) Ask SCOPE first:\n   \"Are all items affected, or only some items?\"\n2) If customer says only some, ask item selection:\n   \"Which items are affected?\"\n3) Then classify when sufficient context exists.\n\nNever combine scope, item selection, and damage detail in one question.\n\nRESPONSE FORMAT (STRICT):\nReturn valid JSON only in this shape:\n{\n  \"action\": \"ask_question\" | \"ask_for_proof\" | \"classify_intent\" | \"await_customer_decision\",\n  \"question\": \"string (only if action=ask_question or action=ask_for_proof)\",\n  \"intent\": \"valid_dispute\" | \"insufficient_context\" | null,\n  \"intent_summary\": \"string or null\"\n}\n\nADDITIONAL RESPONSE RULES:\n- If action = ask_question, provide exactly one clear next-step question.\n- If action = ask_for_proof, question must clearly request the missing proof.\n- If action = classify_intent, set question to null.\n- If action = await_customer_decision, set question to null, intent to null, and intent_summary to null.\n- Do not include markdown.\n- Do not include explanatory text outside the JSON object.\n`;\n\nconst messages = [\n  {\n    role: 'system',\n    content: sequencingRules,\n  },\n  {\n    role: 'user',\n    content: JSON.stringify(userPayload),\n  },\n];\n\nreturn [{ messages, priorQuestions }];"
       },
-      "id": "e0e0e56c-1b83-4ec9-8eb2-73bde26f8b65",
+      "id": "28f4da7a-980b-4c02-882a-8d90c333f237",
       "name": "Build Intake Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        240
+        1488,
+        464
       ]
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.messages?.[0]?.content || '' }}",
+        "prompt": "=={{ $json.messages[0].content }}",
         "messages": {
           "messageValues": [
             {
-              "type": "SystemMessagePromptTemplate",
-              "message": "You are ROAR's intake agent for a retail customer dispute system.\n\nYour job is to gather sufficient context from the customer about their dispute,\nthen classify the intent once you have enough information.\n\nRULES:\n\n- Ask a maximum of 3 follow-up questions total across the entire conversation.\n\n- Only ask questions from the approved set for the given dispute_type.\n\n- Use case.dispute_subtype and the transcript to decide whether item-level clarification is required.\n\n- If the customer indicates that only some items were received, some items were damaged, some items were wrong, or only a subset of the order is affected, ask an item-level follow-up before generic verification like payment method or timing.\n\n- The item-level follow-up counts toward the 3-question limit.\n\n- Do not ask an item-level follow-up if the whole order is clearly affected and there is no item ambiguity.\n\n- Once you have sufficient context (or after 3 questions), classify the intent.\n\n- Classify as valid_dispute if the issue is a legitimate refund or delivery problem.\n\n- Classify as insufficient_context only if the customer provided no usable information.\n\n- Be concise and professional.\n\nAPPROVED QUESTIONS --- refund disputes:\n\n1. Have you received any part of your order?\n\n2. Which items from your order were missing, damaged, wrong, or otherwise affected?\n\n3. What payment method did you use for this order?\n\n4. When was the order placed?\n\nAPPROVED QUESTIONS --- delivery disputes:\n\n1. What is the current tracking status shown to you?\n\n2. Which items from your order were missing or otherwise affected?\n\n3. Has the estimated delivery date passed?\n\n4. Have you contacted the carrier about this issue?\n\nITEM-LEVEL QUESTION GUIDANCE:\n\n- For partial receipt / missing items, ask which items were missing or which items were received.\n\n- For damaged goods, ask which items were damaged.\n\n- For wrong item / wrong variant, ask which items were wrong or affected.\n\n- For other subset-of-order problems, ask what items were affected.\n\nRESPONSE FORMAT --- valid JSON only, no prose, no markdown:\n\n{ \"action\": \"ask_question\" | \"classify_intent\",\n\n\"question\": \"string (only if action=ask_question)\",\n\n\"intent\": \"valid_dispute\" | \"insufficient_context\" (only if classifying),\n\n\"intent_summary\": \"one sentence summary (only if classifying)\" }"
+              "message": "=You are RAI, ROAR's intake agent for a retail customer dispute system.\n\nYour job is to gather sufficient context from the customer about their dispute,\nrequest proof when policy requires it,\nand classify the intake as ready for triage once enough information is present.\n\nYou must strictly follow the case state provided in the input.\n\nCORE RULES:\n\n- Ask a maximum of 3 follow-up questions total across the entire conversation.\n- Only ask questions from the approved set for the given dispute_type.\n- Use case.dispute_subtype, case.status, case.proof_requirements, case.proof_uploads, case.evidence_bundle, and the transcript to decide the next action.\n- Be concise, professional, and operational.\n- Do not restate the issue type if it is already known.\n- Do not ask generic issue questions like \"What issue are you experiencing with your order?\"\n- Start from the next missing detail only.\n\nSTATE RULES (STRICT):\n\n1. If case.status = awaiting_customer_proof:\n- If no proof uploads are present, action must be \"ask_for_proof\".\n- If proof uploads are already present and text context is sufficient, action must be \"classify_intent\".\n- Do not ask normal intake questions unless one final required text detail is still missing after proof has already been uploaded.\n\n2. If case.status = awaiting_customer_decision:\n- Do not ask intake questions.\n- Do not classify intent again.\n- action must be \"await_customer_decision\".\n\n3. If case.status = pending_triage:\n- Follow the normal intake questioning and classification rules below.\n\nNORMAL INTAKE RULES:\n\n- Use case.dispute_subtype and the transcript to decide whether item-level clarification is required.\n- If the customer indicates that only some items were received, some items were damaged, some items were wrong, or only a subset of the order is affected, ask an item-level follow-up before generic verification like payment method or timing.\n- The item-level follow-up counts toward the 3-question limit.\n- Do not ask an item-level follow-up if the whole order is clearly affected and there is no item ambiguity.\n- Once sufficient context is available, classify the intake.\n- Classify as valid_dispute if the issue is sufficiently described and ready for downstream triage.\n- Classify as insufficient_context only if the customer provided no usable information.\n\nPROOF RULES:\n\n- If proof is required, ask the customer to upload photo evidence instead of continuing normal intake questioning when proof is still missing.\n- Do not ask for more than 2 images.\n- If proof has already been uploaded, do not ask for proof again unless the state or transcript explicitly shows it is still missing.\n\nAPPROVED QUESTIONS --- refund disputes:\n\n1. Have you received any part of your order?\n\n2. Which items from your order were missing, damaged, wrong, or otherwise affected?\n\n3. What payment method did you use for this order?\n\n4. When was the order placed?\n\nAPPROVED QUESTIONS --- delivery disputes:\n\n1. What is the current tracking status shown to you?\n\n2. Which items from your order were missing or otherwise affected?\n\n3. Has the estimated delivery date passed?\n\n4. Have you contacted the carrier about this issue?\n\nPROOF REQUEST WORDING:\n\n- When action = ask_for_proof, use a concise request such as:\n  \"Please upload up to 2 photos showing the issue so I can continue reviewing your case.\"\n\nITEM-LEVEL QUESTION GUIDANCE:\n\nWHEN TO ASK ITEM-LEVEL:\n- dispute_subtype contains: partial_fulfillment, damaged_goods, wrong_item\n- Customer response mentions: \"some\", \"only part\", \"one of\", \"a few\"\n- Ambiguity exists about which items are affected\n\nWHEN TO SKIP ITEM-LEVEL:\n- dispute_subtype is: package_never_arrived, return_for_refund\n- Customer clearly states: \"entire order\", \"all items\", \"nothing arrived\"\n- Only one item exists in the order\n\nITEM-LEVEL QUESTION EXAMPLES:\n- For partial receipt / missing items, ask which items were missing or which items were received.\n- For damaged goods, ask which items were damaged.\n- For wrong item / wrong variant, ask which items were wrong or affected.\n- For other subset-of-order problems, ask what items were affected.\n\nRESPONSE FORMAT --- valid JSON only, no prose, no markdown:\n\n{\n  \"action\": \"ask_question\" | \"ask_for_proof\" | \"classify_intent\" | \"await_customer_decision\",\n  \"question\": \"string (only if action=ask_question or action=ask_for_proof)\",\n  \"intent\": \"valid_dispute\" | \"insufficient_context\" | null,\n  \"intent_summary\": \"one sentence summary (only if classifying, otherwise null)\"\n}\n\nSEQUENCING AND WORDING LOCK (STRICT):\n\nFor dispute_subtype in [damaged_goods, wrong_item, partial_fulfillment]:\n1) Ask DETAIL first (type of issue),\n2) Ask SCOPE second using this exact question:\n   \"Are all items affected, or only some items?\"\n3) If customer says only some, ask item selection using this exact question:\n   \"Which items are affected?\"\n\nDo not combine DETAIL and SCOPE in one question.\nDo not skip SCOPE unless customer already clearly states \"all items\" or \"entire order\"."
             }
           ]
         }
       },
-      "id": "463ac4b5-cd12-4763-8e13-7ea1dd56e7c1",
+      "id": "9580f2a7-207a-43ab-9c20-a08c34881ab0",
       "name": "Basic LLM Chain — Intake",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1,
       "position": [
-        1200,
-        240
+        1712,
+        464
       ]
     },
     {
       "parameters": {
         "model": "gpt-4o-mini",
         "options": {
-          "temperature": 0.2,
           "maxTokens": 400,
-          "responseFormat": "json_object"
+          "responseFormat": "json_object",
+          "temperature": 0.2
         }
       },
-      "id": "d9c8a1c3-1a5d-48b7-bc03-f2d0bfb77f2c",
+      "id": "1185cab0-40a9-4c64-9416-dc6ef98faaed",
       "name": "OpenAI Chat Model — Intake",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        1200,
-        420
+        1792,
+        688
       ],
       "credentials": {
         "openAiApi": {
-          "name": "ROAR OpenAI"
+          "id": "NByBKEvh1nY13B5s",
+          "name": "OpenAi account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst fallbackQuestion = 'Could you share a bit more detail about what happened with your order?';\n\nlet raw = $json;\nlet data;\n\nif (raw && typeof raw === 'object' && (raw.action || raw.question || raw.intent)) {\n  data = raw;\n} else {\n  const text = coerceToString(raw);\n  try {\n    data = JSON.parse(text);\n  } catch (e) {\n    data = { action: 'ask_question', question: fallbackQuestion };\n  }\n}\n\nconst rawIntent = (data.intent || '').toString().trim();\nconst intent = rawIntent === 'insufficient_info' ? 'insufficient_context' : rawIntent;\n\nlet next_action;\nlet question = data.question || null;\n\nif (data.action === 'ask_question') {\n  next_action = 'ask_question';\n} else if (data.action === 'classify_intent' && intent === 'valid_dispute') {\n  next_action = 'classify_intent';\n} else if (data.action === 'classify_intent' && intent === 'insufficient_context') {\n  // Keep intake interactive: ask follow-up instead of closing immediately.\n  next_action = 'ask_question';\n  question = question || fallbackQuestion;\n} else {\n  next_action = 'ask_question';\n  question = question || fallbackQuestion;\n}\n\nreturn [{\n  next_action,\n  question,\n  intent,\n  intent_summary: data.intent_summary || null,\n}];\n"
+        "jsCode": "const coerceToString = (v) => {\n  if (v == null) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    if (typeof v.text === 'string') return v.text;\n    if (typeof v.output === 'string') return v.output;\n    if (typeof v.response === 'string') return v.response;\n    if (v.response && typeof v.response.text === 'string') return v.response.text;\n  }\n  return String(v);\n};\n\nconst fallbackQuestion = 'Could you share a bit more detail about what happened with your order?';\nconst proofRequestQuestion = 'Please upload up to 2 photos showing the issue so I can continue reviewing your case.';\n\nlet raw = $json;\nlet data;\n\nif (raw && typeof raw === 'object' && (raw.action || raw.question || raw.intent)) {\n  data = raw;\n} else {\n  const text = coerceToString(raw);\n  try {\n    data = JSON.parse(text);\n  } catch (e) {\n    data = { action: 'ask_question', question: fallbackQuestion };\n  }\n}\n\nlet intent = (data.intent || '').toString().trim();\nif (intent === 'insufficient_info') intent = 'insufficient_context';\n\nconst caseData = $node['Fetch Case'].json || {};\nconst transcript = ($node['Fetch Transcript'].json?.messages || []).slice(-40);\n\nconst caseStatus = String(caseData.status || '').trim().toLowerCase();\nconst proofRequirements = caseData.proof_requirements || {};\nconst proofUploads = Array.isArray(caseData.proof_uploads) ? caseData.proof_uploads : [];\nconst evidenceBundle = caseData.evidence_bundle || {};\nconst invalidReasonCode = String(caseData.invalid_reason_code || '').trim().toLowerCase();\n\nconst mapIntakeMessageToSubtype = (msg) => {\n  const t = String(msg || '').toLowerCase();\n  if (t.includes('damaged')) return 'damaged_goods';\n  if (t.includes('wrong item')) return 'wrong_item';\n  if (t.includes('missing') || t.includes('partial')) return 'partial_fulfillment';\n  if (t.includes('package never arrived')) return 'package_never_arrived';\n  if (t.includes('delivery is late')) return 'delivery_late';\n  if (t.includes('wrong delivery address')) return 'wrong_delivery_address';\n  if (t.includes('duplicate charge')) return 'duplicate_charge';\n  if (t.includes('return')) return 'return_for_refund';\n  return '';\n};\n\nconst subtype = String(\n  caseData.dispute_subtype ||\n  caseData.disputeSubtype ||\n  mapIntakeMessageToSubtype(caseData.intake_message)\n).toLowerCase();\n\nconst normalizeQuestion = (q) =>\n  String(q || '')\n    .toLowerCase()\n    .replace(/[^\\w\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst isGenericIssueQuestion = (q) => {\n  const t = normalizeQuestion(q);\n  return (\n    t.includes('what issue are you experiencing') ||\n    t.includes('what issue are you having') ||\n    t.includes('what type of problem are you experiencing') ||\n    t.includes('what type of issue are you experiencing') ||\n    t.includes('what happened with your order') ||\n    t.includes('tell me what happened') ||\n    t.includes('could you share a bit more detail about what happened with your order')\n  );\n};\n\nconst isScopeQuestion = (q) => {\n  const t = normalizeQuestion(q);\n  return (\n    (t.includes('all items affected') && t.includes('only some items')) ||\n    t.includes('all items or only some items') ||\n    t.includes('all or some items')\n  );\n};\n\nconst isItemQuestion = (q) => {\n  const t = normalizeQuestion(q);\n  return (\n    (t.includes('what items') || t.includes('which items') || t.includes('what item') || t.includes('which item')) &&\n    (t.includes('damaged') || t.includes('missing') || t.includes('wrong') || t.includes('affected'))\n  );\n};\n\nconst isDamageDetailQuestion = (q) => {\n  const t = normalizeQuestion(q);\n  return (\n    t.includes('what type of damage occurred to the items') ||\n    t.includes('what type of damage occurred') ||\n    t.includes('what damage occurred') ||\n    t.includes('describe the damage') ||\n    t.includes('what kind of damage')\n  );\n};\n\nconst aiTexts = transcript\n  .filter((m) => m.sender_type === 'ai' || m.sender_type === 'agent')\n  .map((m) => String(m.content || '').toLowerCase());\n\nconst customerMessages = transcript\n  .filter((m) => m.sender_type === 'customer')\n  .map((m) => String(m.content || ''));\n\nconst customerText = customerMessages.join(' ').toLowerCase();\n\nconst latestCustomerMessage =\n  [...transcript]\n    .reverse()\n    .find((m) => m.sender_type === 'customer') || null;\n\nconst latestCustomerMetadata =\n  latestCustomerMessage && typeof latestCustomerMessage.metadata === 'object'\n    ? latestCustomerMessage.metadata\n    : null;\n\nconst latestCustomerUploadedProof =\n  latestCustomerMetadata &&\n  (\n    latestCustomerMetadata.action === 'proof_uploaded' ||\n    latestCustomerMetadata.role === 'proof_upload' ||\n    Array.isArray(latestCustomerMetadata.attachments)\n  );\n\nconst latestCustomerAppealed =\n  latestCustomerMetadata &&\n  latestCustomerMetadata.action === 'appeal_requested';\n\nconst hasAskedScope = aiTexts.some((t) => isScopeQuestion(t));\nconst hasAskedItemSelection = aiTexts.some((t) => isItemQuestion(t));\nconst hasAskedDamageDetail = aiTexts.some((t) => isDamageDetailQuestion(t));\n\nconst customerIndicatesOnlySome =\n  /\\bonly some\\b|\\bsome items\\b|\\bpart of\\b|\\bsubset\\b|\\ba few\\b|\\bone of\\b|\\bnot all\\b/i.test(customerText);\n\nconst customerIndicatesAllItems =\n  /\\ball items\\b|\\bentire order\\b|\\bwhole order\\b|\\beverything\\b|\\ball of them\\b|\\bthe whole thing\\b/i.test(customerText);\n\nconst customerProvidedItemAnswer =\n  /damaged items:|missing items:|affected items:|wrong items:|items:/i.test(customerText);\n\nconst customerProvidedDamageDetail =\n  /\\bscratched\\b|\\bbroken\\b|\\bcracked\\b|\\bleaking\\b|\\btorn\\b|\\bdented\\b|\\bdefective\\b|\\bwet\\b|\\bshattered\\b|\\bspilled\\b|\\bripped\\b|\\bbent\\b|\\bpackaging damaged\\b|\\bbox damaged\\b|\\bitem itself is damaged\\b|\\bboth the item and packaging are damaged\\b|\\bonly the packaging is damaged\\b/i.test(customerText);\n\nconst requiresScopeFlow = ['damaged_goods', 'wrong_item', 'partial_fulfillment'].includes(subtype);\nconst requiresDamageDetail = subtype === 'damaged_goods';\n\nconst scopeResolved = !requiresScopeFlow || customerIndicatesOnlySome || customerIndicatesAllItems;\nconst itemSelectionResolved = !requiresScopeFlow || !customerIndicatesOnlySome || customerProvidedItemAnswer;\nconst damageDetailResolved = !requiresDamageDetail || customerProvidedDamageDetail;\n\nconst allRequiredSlotsResolved =\n  scopeResolved &&\n  itemSelectionResolved &&\n  damageDetailResolved;\n\nconst proofRequired =\n  proofRequirements?.required === true ||\n  ['damaged_goods', 'wrong_item', 'not_as_described', 'partial_fulfillment'].includes(subtype);\n\nconst proofAlreadyPresent =\n  proofUploads.length > 0 ||\n  evidenceBundle?.proof_present === true ||\n  (Array.isArray(evidenceBundle?.proof_uploads) && evidenceBundle.proof_uploads.length > 0);\n\nlet next_action = 'error';\nlet question = data.question || null;\n\nif (isGenericIssueQuestion(question) && subtype) {\n  question = null;\n}\n\nconst lastAiQuestion =\n  [...transcript]\n    .reverse()\n    .find((m) => (m.sender_type === 'ai' || m.sender_type === 'agent') && typeof m.content === 'string')\n    ?.content || '';\n\nconst pickNextQuestion = () => {\n  if (!scopeResolved && requiresScopeFlow) {\n    return 'Are all items affected, or only some items?';\n  }\n\n  if (!itemSelectionResolved && requiresScopeFlow && customerIndicatesOnlySome) {\n    return 'Which items are affected?';\n  }\n\n  if (!damageDetailResolved && requiresDamageDetail) {\n    return 'What type of damage occurred to the items?';\n  }\n\n  return null;\n};\n\n// -----------------------------------------------------------------------------\n// STATE-FIRST ROUTING\n// -----------------------------------------------------------------------------\n\nif (caseStatus === 'awaiting_customer_decision') {\n  next_action = 'await_customer_decision';\n  question = null;\n  return [{\n    next_action,\n    question,\n    intent: null,\n    intent_summary: invalidReasonCode\n      ? `Case is awaiting customer decision due to ${invalidReasonCode}.`\n      : 'Case is awaiting customer decision.',\n  }];\n}\n\nif (caseStatus === 'awaiting_customer_proof') {\n  if (proofAlreadyPresent || latestCustomerUploadedProof) {\n    if (allRequiredSlotsResolved) {\n      next_action = 'classify_intent';\n      intent = intent || 'valid_dispute';\n      question = null;\n      if (!data.intent_summary) {\n        data.intent_summary = 'Required proof is present and intake context is sufficient for triage.';\n      }\n    } else {\n      const requiredNext = pickNextQuestion();\n      if (requiredNext) {\n        next_action = 'ask_question';\n        question = requiredNext;\n      } else {\n        next_action = 'classify_intent';\n        intent = intent || 'valid_dispute';\n        question = null;\n        if (!data.intent_summary) {\n          data.intent_summary = 'Required proof is present and intake context is sufficient for triage.';\n        }\n      }\n    }\n  } else {\n    next_action = 'ask_for_proof';\n    question = proofRequestQuestion;\n  }\n\n  return [{\n    next_action,\n    question,\n    intent: next_action === 'classify_intent' ? (intent || 'valid_dispute') : null,\n    intent_summary: data.intent_summary || null,\n  }];\n}\n\n// -----------------------------------------------------------------------------\n// NORMAL INTAKE ROUTING\n// -----------------------------------------------------------------------------\n\nif (proofRequired && !proofAlreadyPresent && data.action === 'ask_for_proof') {\n  next_action = 'ask_for_proof';\n  question = question || proofRequestQuestion;\n} else if (allRequiredSlotsResolved) {\n  next_action = 'classify_intent';\n  intent = intent || 'valid_dispute';\n  question = null;\n  if (!data.intent_summary) {\n    data.intent_summary = 'Customer provided sufficient intake context for triage.';\n  }\n} else if (data.action === 'ask_question') {\n  next_action = 'ask_question';\n  question = question || pickNextQuestion() || fallbackQuestion;\n} else if (data.action === 'ask_for_proof') {\n  next_action = proofRequired && !proofAlreadyPresent ? 'ask_for_proof' : 'ask_question';\n  question = next_action === 'ask_for_proof'\n    ? (question || proofRequestQuestion)\n    : (pickNextQuestion() || fallbackQuestion);\n} else if (data.action === 'classify_intent') {\n  if (intent === 'valid_dispute') {\n    const requiredNext = pickNextQuestion();\n    if (requiredNext) {\n      next_action = 'ask_question';\n      question = requiredNext;\n    } else if (proofRequired && !proofAlreadyPresent) {\n      next_action = 'ask_for_proof';\n      question = proofRequestQuestion;\n    } else {\n      next_action = 'classify_intent';\n    }\n  } else if (intent === 'insufficient_context') {\n    next_action = 'ask_question';\n    question = question || pickNextQuestion() || fallbackQuestion;\n  } else {\n    next_action = 'ask_question';\n    question = question || pickNextQuestion() || fallbackQuestion;\n  }\n} else if (data.action === 'await_customer_decision') {\n  next_action = 'await_customer_decision';\n  question = null;\n} else {\n  if (proofRequired && !proofAlreadyPresent) {\n    next_action = 'ask_for_proof';\n    question = proofRequestQuestion;\n  } else {\n    next_action = 'ask_question';\n    question = pickNextQuestion() || fallbackQuestion;\n  }\n}\n\n// Never regress backward in sequence for normal intake questions\nif (next_action === 'ask_question') {\n  if (isScopeQuestion(question) && scopeResolved) {\n    question = pickNextQuestion();\n  }\n\n  if (isItemQuestion(question) && itemSelectionResolved) {\n    question = pickNextQuestion();\n  }\n\n  if (isDamageDetailQuestion(question) && damageDetailResolved) {\n    question = pickNextQuestion();\n  }\n}\n\nif (next_action === 'ask_question' && !question && allRequiredSlotsResolved) {\n  if (proofRequired && !proofAlreadyPresent) {\n    next_action = 'ask_for_proof';\n    question = proofRequestQuestion;\n  } else {\n    next_action = 'classify_intent';\n    intent = intent || 'valid_dispute';\n    question = null;\n    if (!data.intent_summary) {\n      data.intent_summary = 'Customer provided sufficient intake context for triage.';\n    }\n  }\n}\n\n// Stop same-question loops\nif (\n  (next_action === 'ask_question' || next_action === 'ask_for_proof') &&\n  question &&\n  normalizeQuestion(question) === normalizeQuestion(lastAiQuestion)\n) {\n  const requiredNext = pickNextQuestion();\n\n  if (next_action === 'ask_for_proof') {\n    next_action = proofAlreadyPresent ? 'classify_intent' : 'ask_for_proof';\n    question = proofAlreadyPresent ? null : proofRequestQuestion;\n  } else if (requiredNext && normalizeQuestion(requiredNext) !== normalizeQuestion(question)) {\n    question = requiredNext;\n  } else if (allRequiredSlotsResolved && (!proofRequired || proofAlreadyPresent)) {\n    next_action = 'classify_intent';\n    intent = intent || 'valid_dispute';\n    question = null;\n    if (!data.intent_summary) {\n      data.intent_summary = 'Customer provided sufficient intake context for triage.';\n    }\n  } else if (proofRequired && !proofAlreadyPresent) {\n    next_action = 'ask_for_proof';\n    question = proofRequestQuestion;\n  } else {\n    next_action = 'classify_intent';\n    intent = intent || 'valid_dispute';\n    question = null;\n    if (!data.intent_summary) {\n      data.intent_summary = 'Sufficient intake context collected for triage classification.';\n    }\n  }\n}\n\nreturn [{\n  next_action,\n  question,\n  intent: next_action === 'classify_intent' ? (intent || null) : null,\n  intent_summary: data.intent_summary || null,\n}];\n"
       },
-      "id": "dbf9c1a1-5c27-4d21-bb5d-10b4a566d3a6",
+      "id": "07d19538-b66e-448c-8d15-a6a5f947d914",
       "name": "Parse Intake JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1440,
-        240
+        2064,
+        464
       ]
     },
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $json.next_action + ':' + ($json.intent || '') }}",
+        "value1": "={{ $json.next_action }}",
         "rules": {
           "rules": [
             {
-              "value2": "ask_question:"
+              "value2": "ask_question"
             },
             {
-              "value2": "classify_intent:valid_dispute",
+              "value2": "classify_intent",
               "output": 1
             },
             {
-              "value2": "classify_intent:insufficient_context",
+              "value2": "ask_for_proof",
               "output": 2
+            },
+            {
+              "value2": "await_customer_decision",
+              "output": 3
             }
           ]
-        },
-        "options": {
-          "fallbackOutput": "extraOutput"
         }
       },
-      "id": "c15fe9b5-43bb-46a8-8bc7-f9a37741c6c1",
+      "id": "3a5391a2-163c-4315-b119-323eeb540fea",
       "name": "Route by next_action",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        1680,
-        240
+        2288,
+        432
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -189,30 +185,43 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": $json.question,\n  \"sender_type\": \"agent\",\n  \"metadata\": {\n    \"role\": \"intake_question\"\n  }\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.question || 'Hello! RAI is here to help. Could you share a bit more detail about what happened with your order?' }}"
+            },
+            {
+              "name": "sender_type",
+              "value": "ai"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ {\n  role: \"intake_question\",\n  stage: \"wf1_intake\",\n  next_action: \"ask_question\",\n  dispute_subtype: $item(0, \"Fetch Case\").$json.dispute_subtype || null\n} }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "e3a21d09-3954-4fb8-93ec-a0a6e9d2a4da",
+      "id": "99281ac2-a2f9-43cf-983a-fc08fb554160",
       "name": "Post Intake Question",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        120
+        2960,
+        144
       ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -221,30 +230,47 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"status\": \"pending_triage\"\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "pending_triage"
+            },
+            {
+              "name": "invalid_reason_code",
+              "value": "={{ null }}"
+            },
+            {
+              "name": "invalid_reason_detail",
+              "value": "={{ null }}"
+            },
+            {
+              "name": "appeal_priority",
+              "value": "={{ null }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "f2de6f57-136e-44fa-8e12-2d1d7bf0fd44",
+      "id": "25533fc3-bb57-4986-b8d1-52c3f60c9c3e",
       "name": "Update Case — intent confirmed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        240
+        2752,
+        368
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/webhooks/bundle-ready",
-        "authentication": "none",
+        "url": "=http://localhost:5678/webhook/bundle-ready",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret-change-in-production"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Content-Type",
@@ -253,30 +279,75 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"case_id\": $node['Webhook — case-created'].json.body.case_id,\n  \"dispute_type\": $node['Webhook — case-created'].json.body.dispute_type,\n  \"dispute_subtype\": $node['Webhook — case-created'].json.body.dispute_subtype,\n  \"resolution_preference\": $node['Webhook — case-created'].json.body.resolution_preference,\n  \"order_id\": $node['Webhook — case-created'].json.body.order_id\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $item(0, \"Fetch Case\").$json.id }}"
+            },
+            {
+              "name": "dispute_type",
+              "value": "={{ $item(0, \"Fetch Case\").$json.dispute_type }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $item(0, \"Fetch Case\").$json.order_id }}"
+            },
+            {
+              "name": "dispute_subtype",
+              "value": "={{ $item(0, \"Fetch Case\").$json.dispute_subtype || null }}"
+            },
+            {
+              "name": "resolution_preference",
+              "value": "={{ $item(0, \"Fetch Case\").$json.resolution_preference || null }}"
+            },
+            {
+              "name": "status",
+              "value": "pending_triage"
+            },
+            {
+              "name": "proof_requirements",
+              "value": "={{ $item(0, \"Fetch Case\").$json.proof_requirements || null }}"
+            },
+            {
+              "name": "proof_uploads",
+              "value": "={{ $item(0, \"Fetch Case\").$json.proof_uploads || [] }}"
+            },
+            {
+              "name": "evidence_bundle",
+              "value": "={{ $item(0, \"Fetch Case\").$json.evidence_bundle || null }}"
+            },
+            {
+              "name": "intent",
+              "value": "={{ $json.intent || \"valid_dispute\" }}"
+            },
+            {
+              "name": "intent_summary",
+              "value": "={{ $json.intent_summary || \"Customer provided sufficient intake context for triage.\" }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "ed1b671d-1eab-4ea5-aab9-5f1b8a2f6b86",
+      "id": "c8228933-24ca-4b18-9db0-87cbabd330a9",
       "name": "Trigger WF2 — bundle-ready",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2160,
-        240
+        2960,
+        368
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -286,48 +357,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": \"Unable to gather enough information from the current conversation. A human agent will continue assisting you.\",\n  \"sender_type\": \"agent\"\n}",
+        "jsonBody": "={{ {\n  content: \"I’m not able to collect enough information to continue intake automatically, so I’m escalating your case to a live support agent for review. Please wait...\",\n  sender_type: \"ai\",\n  metadata: {\n    role: \"intake_insufficient_context\",\n    stage: \"wf1_intake\",\n    next_action: \"classify_intent\",\n    intent: \"insufficient_context\",\n    escalation_reason: \"insufficient_context\"\n  }\n} }}\n",
         "options": {}
       },
-      "id": "5f5d2030-13b9-46da-b7e1-4de329ee7f0f",
+      "id": "aeecb305-10ce-4911-822e-85d1cb1b891f",
       "name": "Post insufficient-context message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        360
-      ]
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}",
-        "authentication": "none",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"status\": \"escalated_human_required\"\n}",
-        "options": {}
-      },
-      "id": "8ddfa98f-1aa6-40ac-a4c5-5fe7ad4d62ea",
-      "name": "Escalate case — insufficient-context",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [
-        2160,
-        360
+        2752,
+        544
       ]
     },
     {
@@ -343,14 +382,220 @@
         },
         "options": {}
       },
-      "id": "f1f5c504-6f4a-45fb-9cbe-3ec3d2d9f96a",
+      "id": "0b6cf0a3-8a67-4875-a2ed-82ae2a8a6b3b",
       "name": "Webhook response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 2,
       "position": [
-        2400,
-        240
+        3216,
+        720
       ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://192.168.1.52:8000/cases/{{ $node[\"Webhook — case-created\"].json.body.case_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  status: \"escalated_human_required\",\n  escalation_summary: $json.intent_summary || \"RAI could not collect enough usable information during intake to continue automated triage.\",\n  invalid_reason_code: \"insufficient_context\",\n  invalid_reason_detail: $json.intent_summary || \"Customer did not provide enough usable information during intake.\"\n} }}",
+        "options": {}
+      },
+      "id": "6a584ba5-fbce-4074-a978-ce1e868c74d3",
+      "name": "Escalate case — insufficient-context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2960,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b213457b-7120-4601-a9a9-32595de80969",
+              "leftValue": "={{ ['cancelled','canceled'].includes(String($json.status || '').toLowerCase()) }}\n",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        368
+      ],
+      "id": "96df23c9-99a1-4d53-bade-7124958fa86d",
+      "name": "Is order cancelled?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            },
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"sender_type\": \"system\",\n  \"content\": \"This order was cancelled, so it can’t be processed through standard dispute flow.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1264,
+        272
+      ],
+      "id": "28e7fc00-c976-4e09-9487-a3b507f786ea",
+      "name": "Cancelled Order"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://192.168.1.52:8000/cases/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"status\": \"escalated_human_required\",\n  \"resolution_path\": \"escalation\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        272
+      ],
+      "id": "c688ff8f-fee0-4143-a3e9-eddd91747ea0",
+      "name": "Update Case to Escalated"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook — case-created'].json.body.case_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.question || 'RAI is here to help. Please upload up to 2 photos showing the issue so I can continue reviewing your case.' }}"
+            },
+            {
+              "name": "sender_type",
+              "value": "ai"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ {\n  role: \"proof_request\",\n  stage: \"wf1_intake\",\n  next_action: \"ask_for_proof\",\n  expects_upload: true,\n  max_files: 2,\n  dispute_subtype: $item(0, \"Fetch Case\").$json.dispute_subtype || null\n} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bafcb519-4a35-4069-b26d-d6b1762fdd3e",
+      "name": "Post Proof Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2960,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eaaf8de5-93f6-4139-940f-bd7b58e97e2d",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "valid_dispute",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2544,
+        448
+      ],
+      "id": "2ef085ad-f884-4d6e-9cf0-c7b5d9ef0538",
+      "name": "Route by Intent"
     }
   ],
   "connections": {
@@ -369,7 +614,7 @@
       "main": [
         [
           {
-            "node": "Fetch Transcript",
+            "node": "Is order cancelled?",
             "type": "main",
             "index": 0
           }
@@ -399,15 +644,6 @@
       ]
     },
     "Basic LLM Chain — Intake": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "OpenAI Chat Model — Intake",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ],
       "main": [
         [
           {
@@ -440,14 +676,14 @@
         ],
         [
           {
-            "node": "Update Case — intent confirmed",
+            "node": "Route by Intent",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Post insufficient-context message",
+            "node": "Post Proof Request",
             "type": "main",
             "index": 0
           }
@@ -505,6 +741,17 @@
         ]
       ]
     },
+    "OpenAI Chat Model — Intake": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain — Intake",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Escalate case — insufficient-context": {
       "main": [
         [
@@ -515,15 +762,77 @@
           }
         ]
       ]
+    },
+    "Is order cancelled?": {
+      "main": [
+        [
+          {
+            "node": "Cancelled Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelled Order": {
+      "main": [
+        [
+          {
+            "node": "Update Case to Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Proof Request": {
+      "main": [
+        [
+          {
+            "node": "Webhook response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Update Case — intent confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post insufficient-context message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
   },
-  "active": false,
-  "versionId": "5c39f8d6-f7df-4b01-8bbf-2fbcc3f5f7d9",
+  "active": true,
+  "versionId": "513a720b-4015-466f-bbaa-4dd48cb05cf8",
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": true
   },
   "pinData": {}
 }

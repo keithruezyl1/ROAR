@@ -1,5 +1,5 @@
 {
-  "name": "ROAR Workflow - Data Retrieval Agent",
+  "name": "#2 ROAR Workflow - Data Retrieval Agent",
   "nodes": [
     {
       "parameters": {
@@ -8,54 +8,25 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "5d5c6e5a-3d4b-4d4a-9f4c-3b9d5d9c4b1a",
+      "id": "d91421ee-70b2-47d0-9f0a-95878302983c",
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        240,
-        240
-      ]
+        -1024,
+        232
+      ],
+      "webhookId": "5a4cd928-4baf-4d29-b04b-f4c096e40dc8"
     },
     {
       "parameters": {
-        "dataType": "string",
-        "value1": "={{ $json.body.dispute_type }}",
-        "rules": {
-          "rules": [
-            {
-              "value2": "refund"
-            },
-            {
-              "value2": "delivery",
-              "output": 1
-            }
-          ]
-        },
-        "options": {
-          "fallbackOutput": "extraOutput"
-        }
-      },
-      "id": "cfb3b6fd-2f9d-4a77-9e55-0c0b1b7de310",
-      "name": "Route by Dispute Type",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [
-        480,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/internal/sources/orders?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/internal/sources/orders?order_id={{ $node['Get Case Details'].json.order_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Accept",
@@ -65,19 +36,19 @@
         },
         "options": {}
       },
-      "id": "8bd2a0ce-79d9-4b5d-8ea0-0f7c1f2d9ac1",
+      "id": "b97e0e2c-150c-43d5-98c0-1626477ef42c",
       "name": "Query OMS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        720,
-        240
+        -576,
+        232
       ]
     },
     {
       "parameters": {
         "dataType": "string",
-        "value1": "={{ $node['Webhook Trigger'].json.body.dispute_type }}",
+        "value1": "={{ $node['Get Case Details'].json.dispute_type }}",
         "rules": {
           "rules": [
             {
@@ -88,31 +59,26 @@
               "output": 1
             }
           ]
-        },
-        "options": {
-          "fallbackOutput": "extraOutput"
         }
       },
-      "id": "3d9a54f8-3d7f-4d7c-9cf5-74cbb8d5e2a8",
+      "id": "7b3945cf-5f4c-488d-9463-e1bbb3554b8e",
       "name": "Route after OMS",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        960,
-        240
+        -352,
+        208
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/internal/sources/transactions?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/internal/sources/transactions?order_id={{ $node['Get Case Details'].json.order_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Accept",
@@ -122,26 +88,24 @@
         },
         "options": {}
       },
-      "id": "f1566e7a-4b1f-40ee-b4cf-56b8a47d882b",
+      "id": "664fe5fe-d19c-463e-8d5a-c38e068aba8b",
       "name": "Query Payment - Txn",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1200,
-        120
+        -128,
+        40
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/internal/sources/refunds?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/internal/sources/refunds?order_id={{ $node['Get Case Details'].json.order_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Accept",
@@ -151,26 +115,24 @@
         },
         "options": {}
       },
-      "id": "8d4c6e29-5ff4-4cf4-92a0-0f7e4a9f3b3a",
+      "id": "8c4fa37b-f00f-489e-9ca5-2872811ec279",
       "name": "Query Payment - Refunds",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1440,
-        120
+        96,
+        40
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/internal/sources/shipments?order_id={{$node['Webhook Trigger'].json.body.order_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/internal/sources/shipments?order_id={{ $node['Get Case Details'].json.order_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Accept",
@@ -180,26 +142,24 @@
         },
         "options": {}
       },
-      "id": "7e1f68f1-1a7a-4d40-a2b8-8b64b4f6a3b2",
+      "id": "4555443f-60cb-44fe-8b62-a28bd5fca504",
       "name": "Query Logistics",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1200,
-        360
+        544,
+        384
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "http://localhost:8000/internal/sources/inventory?item_ids={{ ($items('Query OMS')[0].json.order_items || []).map(i => i.item_id).join(',') }}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/internal/sources/inventory?item_ids={{ (($items('Query OMS')[0].json.order_items || []).map(i => i.item_id).filter(Boolean).join(',')) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Accept",
@@ -209,39 +169,38 @@
         },
         "options": {}
       },
-      "id": "a0b7e3d1-6d19-4e7f-9a15-37c2c98d1f77",
+      "id": "c4ee0151-5ca7-43c9-8378-5079e6e03f86",
       "name": "Query Inventory",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1440,
-        360
+        768,
+        -32
       ]
     },
     {
       "parameters": {
-        "jsCode": "const oms = $items('Query OMS')[0]?.json ?? {};\nconst paymentTxnItems = $items('Query Payment - Txn');\nconst refundsItems = $items('Query Payment - Refunds');\nconst logisticsItems = $items('Query Logistics');\nconst inventoryItems = $items('Query Inventory');\n\nconst transaction = paymentTxnItems.length ? paymentTxnItems[0].json.transaction : null;\nconst refund_records = refundsItems.length ? refundsItems[0].json.refund_records : null;\nconst shipment = logisticsItems.length ? logisticsItems[0].json.shipment : null;\nconst tracking_events = logisticsItems.length ? logisticsItems[0].json.tracking_events : null;\nconst stock_records = inventoryItems.length ? inventoryItems[0].json.stock_records : null;\n\nconst input = $node['Webhook Trigger'].json.body || $json.body || $json;\n\nconst bundle = {\n  order: oms.order ?? null,\n  order_items: oms.order_items ?? [],\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n  dispute_type: input.dispute_type,\n  dispute_subtype: input.dispute_subtype ?? null,\n  resolution_preference: input.resolution_preference ?? null,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [{\n  case_id: input.case_id,\n  dispute_type: input.dispute_type,\n  dispute_subtype: input.dispute_subtype ?? null,\n  resolution_preference: input.resolution_preference ?? null,\n  information_bundle: bundle,\n}];\n"
+        "jsCode": "const safeItems = (nodeName) => {\n  try {\n    return $items(nodeName) || [];\n  } catch (e) {\n    return [];\n  }\n};\n\nconst caseCtx = $node[\"Get Case Details\"]?.json ?? {};\nconst resolvedCtx = safeItems(\"Resolve Preference\")[0]?.json ?? {};\nconst transcriptCtx = $node[\"Fetch Transcript\"]?.json ?? {};\n\nconst oms = safeItems(\"Query OMS\")[0]?.json ?? {};\nconst paymentTxnItems = safeItems(\"Query Payment - Txn\");\nconst refundsItems = safeItems(\"Query Payment - Refunds\");\nconst logisticsItems = safeItems(\"Query Logistics\");\nconst inventoryItems = safeItems(\"Query Inventory\");\n\nconst transaction = paymentTxnItems[0]?.json?.transaction ?? null;\nconst refund_records = refundsItems[0]?.json?.refund_records ?? [];\nconst shipment = logisticsItems[0]?.json?.shipment ?? null;\nconst tracking_events = logisticsItems[0]?.json?.tracking_events ?? [];\nconst stock_records = inventoryItems[0]?.json?.stock_records ?? [];\n\nconst order = oms.order ?? null;\nconst order_items = Array.isArray(oms.order_items) ? oms.order_items : [];\n\nconst resolved_case_id =\n  resolvedCtx.resolved_case_id ??\n  caseCtx.id ??\n  null;\n\nconst resolved_order_id =\n  resolvedCtx.resolved_order_id ??\n  caseCtx.order_id ??\n  order?.order_id ??\n  null;\n\nconst resolved_dispute_type =\n  resolvedCtx.resolved_dispute_type ??\n  caseCtx.dispute_type ??\n  null;\n\nconst resolved_dispute_subtype =\n  resolvedCtx.resolved_dispute_subtype ??\n  caseCtx.dispute_subtype ??\n  null;\n\nconst resolved_resolution_preference =\n  resolvedCtx.resolved_resolution_preference ??\n  caseCtx.resolution_preference ??\n  null;\n\nconst proof_requirements =\n  resolvedCtx.resolved_proof_requirements ??\n  caseCtx.proof_requirements ??\n  null;\n\nconst proof_uploads =\n  resolvedCtx.resolved_proof_uploads ??\n  caseCtx.proof_uploads ??\n  [];\n\nconst proof_analysis =\n  resolvedCtx.resolved_proof_analysis ??\n  caseCtx.proof_analysis ??\n  null;\n\nconst proof_analysis_status =\n  resolvedCtx.resolved_proof_analysis_status ??\n  caseCtx.proof_analysis_status ??\n  null;\n\nconst case_evidence_bundle =\n  resolvedCtx.resolved_evidence_bundle ??\n  caseCtx.evidence_bundle ??\n  null;\n\nconst invalid_reason_code = caseCtx.invalid_reason_code ?? null;\nconst invalid_reason_detail = caseCtx.invalid_reason_detail ?? null;\nconst appeal_priority = caseCtx.appeal_priority ?? null;\n\nconst normalize = (value) => String(value ?? \"\").trim().toLowerCase();\nconst toArray = (value) => (Array.isArray(value) ? value : []);\n\nconst uniqueStrings = (values) => {\n  const seen = new Set();\n\n  return values.filter((value) => {\n    const normalized = String(value ?? \"\").trim();\n    if (!normalized || seen.has(normalized)) return false;\n    seen.add(normalized);\n    return true;\n  });\n};\n\nconst nameVariants = (value) => {\n  const text = String(value ?? \"\").trim();\n  if (!text) return [];\n\n  const lowered = text.toLowerCase();\n\n  return uniqueStrings([\n    lowered,\n    lowered.replace(/-/g, \" \"),\n    lowered.replace(/[()]/g, \"\"),\n    lowered.replace(/-/g, \" \").replace(/[()]/g, \"\"),\n  ]);\n};\n\nconst extractMessageArrays = (ctx) => {\n  const candidates = [\n    ctx?.messages,\n    ctx?.transcript,\n    ctx?.chat_messages,\n    ctx?.conversation,\n    ctx?.history,\n    ctx?.message_history,\n  ];\n\n  const arrays = candidates.filter(Array.isArray);\n  return arrays.flat();\n};\n\nconst transcript_messages = extractMessageArrays(transcriptCtx);\n\nconst sanitizeMessage = (message) => ({\n  id: message?.id ?? null,\n  sender_type: message?.sender_type ?? null,\n  content: message?.content ?? null,\n  created_at: message?.created_at ?? null,\n  metadata: message?.metadata ?? message?.metadata_ ?? null,\n});\n\nconst matchItemIdsFromText = (messages, orderItems) => {\n  const orderedMessages = [...messages].reverse();\n\n  for (const message of orderedMessages) {\n    if (normalize(message?.sender_type) !== \"customer\") continue;\n\n    const content = normalize(message?.content);\n    if (!content) continue;\n\n    const matched = [];\n\n    for (const item of orderItems) {\n      const itemId = item?.item_id ?? null;\n      const itemName = item?.item_name ?? item?.product_name ?? null;\n      const variants = [\n        ...nameVariants(itemName),\n        ...nameVariants(itemId),\n      ];\n\n      if (variants.some((variant) => variant && content.includes(variant))) {\n        if (itemId) matched.push(itemId);\n      }\n    }\n\n    if (matched.length > 0) {\n      return uniqueStrings(matched);\n    }\n  }\n\n  return [];\n};\n\nconst extractAffectedItemIds = (contexts, orderItems) => {\n  for (const ctx of contexts) {\n    const directIds = toArray(ctx?.affected_item_ids)\n      .map((value) => String(value ?? \"\").trim())\n      .filter(Boolean);\n\n    if (directIds.length > 0) {\n      return uniqueStrings(directIds);\n    }\n\n    const directItems = toArray(ctx?.affected_items)\n      .map((item) => item?.item_id ?? item?.sku ?? null)\n      .filter(Boolean)\n      .map((value) => String(value).trim());\n\n    if (directItems.length > 0) {\n      return uniqueStrings(directItems);\n    }\n\n    const messages = extractMessageArrays(ctx);\n\n    if (messages.length > 0) {\n      for (const message of [...messages].reverse()) {\n        if (normalize(message?.sender_type) !== \"customer\") continue;\n\n        const metadata = message?.metadata ?? message?.metadata_ ?? null;\n        if (!metadata || typeof metadata !== \"object\") continue;\n\n        if (normalize(metadata.selection_type) === \"affected_items\") {\n          const rawIds = toArray(metadata.affected_item_ids)\n            .map((value) => String(value ?? \"\").trim())\n            .filter(Boolean);\n\n          if (rawIds.length > 0) {\n            return uniqueStrings(rawIds);\n          }\n        }\n      }\n\n      const matchedFromText = matchItemIdsFromText(messages, orderItems);\n      if (matchedFromText.length > 0) {\n        return matchedFromText;\n      }\n    }\n  }\n\n  return [];\n};\n\nconst proof_messages = transcript_messages\n  .filter((message) => {\n    const metadata = message?.metadata ?? message?.metadata_ ?? null;\n    if (!metadata || typeof metadata !== \"object\") return false;\n\n    return (\n      normalize(metadata.role) === \"proof_upload\" ||\n      normalize(metadata.role) === \"proof_request\" ||\n      normalize(metadata.action) === \"proof_uploaded\"\n    );\n  })\n  .map(sanitizeMessage);\n\nconst proof_attachments = proof_messages.flatMap((message) => {\n  const metadata = message?.metadata;\n  if (!metadata || typeof metadata !== \"object\") return [];\n  return Array.isArray(metadata.attachments) ? metadata.attachments : [];\n});\n\nconst intake_messages = transcript_messages\n  .filter((message) => {\n    const metadata = message?.metadata ?? message?.metadata_ ?? null;\n    if (!metadata || typeof metadata !== \"object\") return false;\n\n    return (\n      normalize(metadata.role) === \"intake_question\" ||\n      normalize(metadata.role) === \"proof_request\" ||\n      normalize(metadata.role) === \"intake_insufficient_context\"\n    );\n  })\n  .map(sanitizeMessage);\n\nconst recent_transcript = transcript_messages\n  .slice(-20)\n  .map(sanitizeMessage);\n\nconst stockMap = {};\nstock_records.forEach((stock) => {\n  if (stock?.item_id) {\n    stockMap[stock.item_id] = stock;\n  }\n});\n\nconst order_items_detail = order_items.map((item) => {\n  const stock = stockMap[item.item_id] || {};\n\n  return {\n    order_id: item.order_id ?? resolved_order_id ?? null,\n    item_id: item.item_id ?? null,\n    product_name: item.item_name ?? item.product_name ?? null,\n    quantity_ordered: item.quantity ?? null,\n    unit_price: item.unit_price ?? null,\n    quantity_available_now: stock.quantity_available ?? null,\n    warehouse_location: stock.warehouse_location ?? null,\n    sku: item.item_id ?? null,\n  };\n});\n\nconst affected_item_ids = extractAffectedItemIds(\n  [resolvedCtx, caseCtx, transcriptCtx],\n  order_items\n);\n\nconst normalizedAffectedIds = new Set(\n  affected_item_ids.map((value) => normalize(value)).filter(Boolean)\n);\n\nconst affected_items_detail =\n  normalizedAffectedIds.size > 0\n    ? order_items_detail.filter((item) => {\n        const itemId = normalize(item.item_id);\n        const sku = normalize(item.sku);\n        return normalizedAffectedIds.has(itemId) || normalizedAffectedIds.has(sku);\n      })\n    : [];\n\nconst payment_records = [];\n\nif (transaction) {\n  payment_records.push({\n    transaction_id: transaction.transaction_id ?? transaction.id ?? null,\n    order_id: transaction.order_id ?? resolved_order_id ?? null,\n    transaction_type: \"payment\",\n    amount: transaction.amount ?? null,\n    status: transaction.status ?? null,\n    payment_method: transaction.payment_method ?? null,\n    transaction_date: transaction.transaction_date ?? transaction.transacted_at ?? null,\n  });\n}\n\nif (Array.isArray(refund_records)) {\n  refund_records.forEach((refund) => {\n    payment_records.push({\n      transaction_id: refund.refund_id ?? refund.id ?? null,\n      order_id: refund.order_id ?? resolved_order_id ?? null,\n      transaction_type: \"refund\",\n      amount: refund.refund_amount ?? refund.amount ?? null,\n      status: refund.status ?? null,\n      payment_method: refund.refund_method ?? null,\n      transaction_date: refund.refund_date ?? null,\n    });\n  });\n}\n\nconst delivered_at =\n  shipment?.delivered_at ??\n  order?.fulfilled_at ??\n  order?.delivered_at ??\n  null;\n\nconst fulfilled_at =\n  order?.fulfilled_at ??\n  order?.delivered_at ??\n  null;\n\nconst fallback_evidence_bundle = {\n  proof_present: Array.isArray(proof_uploads) && proof_uploads.length > 0,\n  proof_upload_count: Array.isArray(proof_uploads) ? proof_uploads.length : 0,\n  proof_uploads,\n  proof_analysis_status,\n  proof_analysis,\n  invalid_reason_code,\n  invalid_reason_detail,\n};\n\nconst bundle = {\n  // Legacy keys\n  order,\n  order_items,\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n\n  // Canonical normalized data\n  order_data: order\n    ? {\n        order_id: order.order_id ?? resolved_order_id ?? null,\n        customer_name: order.customer_name ?? null,\n        customer_email: order.customer_email ?? null,\n        order_date: order.order_date ?? order.created_at ?? null,\n        total_amount: order.total_amount ?? null,\n        order_status: order.status ?? order.order_status ?? null,\n        fulfilled_at,\n        delivered_at,\n      }\n    : null,\n\n  payment_records,\n\n  shipment_data: shipment\n    ? {\n        shipment_id: shipment.shipment_id ?? shipment.id ?? null,\n        order_id: shipment.order_id ?? resolved_order_id ?? null,\n        carrier: shipment.carrier ?? null,\n        tracking_number: shipment.tracking_number ?? null,\n        status: shipment.status ?? null,\n        estimated_delivery: shipment.estimated_delivery ?? null,\n        shipped_at: shipment.shipped_at ?? null,\n        delivered_at: shipment.delivered_at ?? null,\n      }\n    : null,\n\n  order_items_detail,\n\n  // Additive affected-item fields\n  affected_item_ids,\n  affected_items_detail,\n\n  // Proof and evidence layer\n  proof_requirements,\n  proof_uploads,\n  proof_analysis,\n  proof_analysis_status,\n  evidence_bundle: case_evidence_bundle ?? fallback_evidence_bundle,\n  proof_messages,\n  proof_attachments,\n\n  // Intake / transcript context\n  intake_messages,\n  recent_transcript,\n\n  // Case status context\n  invalid_reason_code,\n  invalid_reason_detail,\n  appeal_priority,\n\n  dispute_type: resolved_dispute_type,\n  dispute_subtype: resolved_dispute_subtype,\n  resolution_preference: resolved_resolution_preference,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [\n  {\n    case_id: resolved_case_id,\n    order_id: resolved_order_id,\n    dispute_type: resolved_dispute_type,\n    dispute_subtype: resolved_dispute_subtype,\n    resolution_preference: resolved_resolution_preference,\n    information_bundle: bundle,\n  },\n];"
       },
-      "id": "9b7d0c3c-7f1c-4c0e-9f36-0d98b67a3fd4",
+      "id": "9a997a2b-aea4-4667-acd7-50ad297b6c5d",
       "name": "Assemble Bundle",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1440,
-        240
+        1216,
+        112
       ]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "http://localhost:8000/cases/{{$json.case_id}}",
-        "authentication": "none",
+        "url": "=http://192.168.1.52:8000/cases/{{$json.case_id}}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzI5NzE4OC0xNDY2LTQwODEtOGE2Zi00OTA0NTNkYmE1M2UiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzczNzk4Njk4LCJleHAiOjE3NzM4NTYyOTh9.CSwsAE5OMJemqfLG1Uab_UZsTdqwAT_IEm9E4w52EnY"
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
             },
             {
               "name": "Content-Type",
@@ -250,30 +209,35 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"information_bundle\": $json.information_bundle\n}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "information_bundle",
+              "value": "={{ $json.information_bundle }}"
+            }
+          ]
+        },
         "options": {}
       },
-      "id": "d3d1e86e-31fe-4b8f-9d63-1c3b7c2a8caa",
+      "id": "e0725b30-0c44-4bdd-a2d0-ef9308c71702",
       "name": "Update Case - Bundle",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1680,
-        240
+        1440,
+        112
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/webhooks/triage-complete",
-        "authentication": "none",
+        "url": "=http://localhost:5678/webhook/triage-complete",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Webhook-Secret",
-              "value": "dev-webhook-secret"
+              "value": "=dev-webhook-secret-change-in-production"
             },
             {
               "name": "Content-Type",
@@ -282,18 +246,153 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"case_id\": $json.case_id,\n  \"dispute_type\": $json.dispute_type,\n  \"dispute_subtype\": $json.dispute_subtype,\n  \"resolution_preference\": $json.resolution_preference\n}",
-        "options": {}
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "case_id",
+              "value": "={{ $json.case_id || $json.id }}"
+            },
+            {
+              "name": "dispute_type",
+              "value": "={{ $json.dispute_type }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $json.order_id || $json.information_bundle?.order_data?.order_id || $json.information_bundle?.order?.order_id || null }}"
+            },
+            {
+              "name": "dispute_subtype",
+              "value": "={{ $json.dispute_subtype }}"
+            },
+            {
+              "name": "resolution_preference",
+              "value": "={{ $json.resolution_preference }}"
+            },
+            {
+              "name": "information_bundle",
+              "value": "={{ $json.information_bundle }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
       },
-      "id": "63c3b6b3-bd0a-4c0d-8b3a-3ce0b6cc2a31",
+      "id": "d99ab47c-8510-41d4-8b71-92ca957219ba",
       "name": "Trigger Triage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1920,
-        240
-      ]
+        1664,
+        112
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b639d5ff-e570-4941-bbb8-a90f3172ab88",
+              "leftValue": "={{ $json.resolved_resolution_preference }}",
+              "rightValue": "replacement",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        48
+      ],
+      "id": "1823fb61-9671-412c-b773-c5e56116eba2",
+      "name": "Needs Inventory (Replacement)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const caseCtx = $node[\"Get Case Details\"].json || {};\nconst current = $input.first().json || {};\n\nreturn [{\n  ...current,\n  resolved_case_id: String(caseCtx.id || \"\").trim(),\n  resolved_order_id: String(caseCtx.order_id || \"\").trim(),\n  resolved_dispute_type: String(caseCtx.dispute_type || \"\").trim().toLowerCase(),\n  resolved_dispute_subtype: String(caseCtx.dispute_subtype || \"\").trim().toLowerCase(),\n  resolved_resolution_preference: String(caseCtx.resolution_preference || \"\").trim().toLowerCase(),\n  resolved_proof_requirements: caseCtx.proof_requirements || null,\n  resolved_proof_uploads: caseCtx.proof_uploads || [],\n  resolved_evidence_bundle: caseCtx.evidence_bundle || null,\n  resolved_proof_analysis: caseCtx.proof_analysis || null,\n  resolved_proof_analysis_status: caseCtx.proof_analysis_status || null,\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        48
+      ],
+      "id": "19fdb6b1-a1ae-435d-8a1b-31d9f8a7c6b6",
+      "name": "Resolve Preference"
+    },
+    {
+      "parameters": {
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Webhook Trigger'].json.body.case_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -800,
+        232
+      ],
+      "id": "0d0bc06c-f27e-4a07-92b8-8b41620d9a92",
+      "name": "Get Case Details"
+    },
+    {
+      "parameters": {
+        "url": "=http://192.168.1.52:8000/cases/{{ $node['Get Case Details'].json.id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMTAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDQiLCJyb2xlIjoiYXBwcm92ZXIiLCJlbWFpbCI6ImFwcHJvdmVyQHJvYXIuYXBwIiwiZnVsbF9uYW1lIjoiQWxleCBDaGVuIiwiaWF0IjoxNzc0NjQ0OTMxLCJleHAiOjE3NzczNTIxMzF9.ISsKRKefvXjGnk1-zt6aBKnmk__6H1DHoACAEMUZ-A8"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        992,
+        112
+      ],
+      "id": "f05fda77-d0b6-42c3-886b-4a0d87af3846",
+      "name": "Fetch Transcript"
     }
   ],
   "connections": {
@@ -301,32 +400,7 @@
       "main": [
         [
           {
-            "node": "Route by Dispute Type",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Route by Dispute Type": {
-      "main": [
-        [
-          {
-            "node": "Query OMS",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Query OMS",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Query OMS",
+            "node": "Get Case Details",
             "type": "main",
             "index": 0
           }
@@ -362,7 +436,7 @@
         ],
         [
           {
-            "node": "Assemble Bundle",
+            "node": "Fetch Transcript",
             "type": "main",
             "index": 0
           }
@@ -384,7 +458,7 @@
       "main": [
         [
           {
-            "node": "Assemble Bundle",
+            "node": "Resolve Preference",
             "type": "main",
             "index": 0
           }
@@ -406,7 +480,7 @@
       "main": [
         [
           {
-            "node": "Assemble Bundle",
+            "node": "Fetch Transcript",
             "type": "main",
             "index": 0
           }
@@ -434,15 +508,66 @@
           }
         ]
       ]
+    },
+    "Needs Inventory (Replacement)": {
+      "main": [
+        [
+          {
+            "node": "Query Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Preference": {
+      "main": [
+        [
+          {
+            "node": "Needs Inventory (Replacement)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Case Details": {
+      "main": [
+        [
+          {
+            "node": "Query OMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Transcript": {
+      "main": [
+        [
+          {
+            "node": "Assemble Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
   },
-  "active": false,
-  "versionId": "e2e4bb7f-8b7f-4c3d-a2e6-34d0e6d5f5f9",
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
+  "active": true,
+  "versionId": "ef16f285-a0b5-41b2-8b7d-8317671b2059",
+  "meta": null,
   "pinData": {}
 }

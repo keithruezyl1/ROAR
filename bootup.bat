@@ -44,7 +44,14 @@ if not errorlevel 1 (
 
 call :container_exists "roar-postgres"
 if errorlevel 1 (
-  echo [WARN] No "roar-postgres" container found, so DB startup is being skipped.
+  echo [INFO] No "roar-postgres" container found. Creating and launching it...
+  docker run -d --name roar-postgres -p 5432:5432 -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=roar postgres:15 >nul
+  if errorlevel 1 (
+    echo [WARN] Failed to create "roar-postgres". Continuing with the remaining services.
+    goto :eof
+  )
+  set "STARTED_POSTGRES=1"
+  call :wait_for_port 5432 "Postgres"
   goto :eof
 )
 
@@ -88,14 +95,7 @@ if not errorlevel 1 (
   goto :eof
 )
 
-echo [INFO] Creating and launching persistent n8n container "roar-n8n"...
-docker run -d --name roar-n8n -p 5678:5678 -v "%USERPROFILE%\.n8n:/home/node/.n8n" n8nio/n8n >nul
-if errorlevel 1 (
-  echo [WARN] Failed to create "roar-n8n". Continuing with the remaining services.
-  goto :eof
-)
-set "STARTED_N8N=1"
-call :wait_for_http "http://127.0.0.1:5678" "n8n"
+echo [WARN] No "roar-n8n" container found. Skipping installation as requested.
 goto :eof
 
 :start_dev_servers
