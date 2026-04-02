@@ -5,8 +5,9 @@ import * as React from 'react';
 import { api, customerApi } from '@/lib/api';
 import { decodeToken } from '@/lib/auth';
 import { Button } from '@/components/shared/Button';
+import { ProofUploadPanel } from '@/components/chat/ProofUploadPanel';
 import { Textarea } from '@/components/shared/Textarea';
-import { INTAKE_ISSUE_OPTIONS, saveCaseContext } from '@/lib/intakeContext';
+import { INTAKE_ISSUE_OPTIONS, issueRequiresProof, saveCaseContext } from '@/lib/intakeContext';
 import type {
   CustomerOrder,
   DisputeSubtype,
@@ -105,6 +106,8 @@ export function IntakeForm({
 
   const [resolutionPreference, setResolutionPreference] = React.useState<ResolutionPreference | null>(null);
   const [otherDetails, setOtherDetails] = React.useState('');
+  const [proofFiles, setProofFiles] = React.useState<File[]>([]);
+  const [uploadError, setUploadError] = React.useState('');
 
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -176,6 +179,7 @@ export function IntakeForm({
   React.useEffect(() => {
     if (!selectedIssue) {
       setResolutionPreference(null);
+      setProofFiles([]);
       return;
     }
     if (selectedIssue.resolutionOptions.length === 0) {
@@ -184,6 +188,10 @@ export function IntakeForm({
     }
     if (selectedIssue.resolutionOptions.length === 1) {
       setResolutionPreference(selectedIssue.resolutionOptions[0]);
+    }
+    if (!issueRequiresProof(selectedIssue.id)) {
+      setProofFiles([]);
+      setUploadError('');
     }
   }, [selectedIssue]);
 
@@ -202,6 +210,9 @@ export function IntakeForm({
 
     if (selectedIssue?.id === 'other' && otherDetails.trim().length < 10) {
       nextErrors.intake_message = 'Please describe your issue in at least 10 characters.';
+    }
+    if (selectedIssue && issueRequiresProof(selectedIssue.id) && proofFiles.length === 0) {
+      nextErrors.proof_uploads = 'Please upload at least one image for this issue type.';
     }
 
     setErrors(nextErrors);
@@ -228,6 +239,7 @@ export function IntakeForm({
 
     try {
       setLoading(true);
+      setUploadError('');
       const res = await api.post<{ id: string }>('/cases', {
         order_id: selectedOrderId,
         dispute_type: selectedIssue.disputeType,
@@ -237,6 +249,10 @@ export function IntakeForm({
         customer_email: auth.email,
         intake_message: intakeMessage,
       });
+
+      if (proofFiles.length > 0) {
+        await customerApi.uploadProofs(res.id, proofFiles);
+      }
 
       saveCaseContext(res.id, {
         intakeReason: selectedIssue.id,
@@ -251,7 +267,9 @@ export function IntakeForm({
         disputeType: selectedIssue.disputeType,
       });
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : 'Failed to create case.');
+      const message = err instanceof Error ? err.message : 'Failed to create case.';
+      setApiError(message);
+      setUploadError(message);
     } finally {
       setLoading(false);
     }
@@ -474,6 +492,26 @@ export function IntakeForm({
             error={errors.intake_message}
             rows={4}
             placeholder="Please describe what happened..."
+          />
+        ) : null}
+
+        {selectedIssue && issueRequiresProof(selectedIssue.id) ? (
+          <ProofUploadPanel
+            title="Proof required"
+            description="This issue type requires at least one supporting image. You can upload up to 2 images."
+            selectedFiles={proofFiles}
+            uploads={[]}
+            uploading={loading}
+            error={errors.proof_uploads || uploadError || null}
+            onSelect={(files) => {
+              setUploadError('');
+              setProofFiles((current) => [...current, ...files].slice(0, 2));
+            }}
+            onRemoveSelected={(index) => {
+              setProofFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+            }}
+            onUpload={() => undefined}
+            showUploadAction={false}
           />
         ) : null}
 

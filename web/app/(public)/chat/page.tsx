@@ -192,8 +192,16 @@ function ChatPageContent() {
                 intakeReason={intakeReason}
                 intakeMessage={caseDetail.intake_message}
                 resolutionPreference={caseDetail.resolution_preference}
+                invalidReasonCode={caseDetail.invalid_reason_code}
+                invalidReasonDetail={caseDetail.invalid_reason_detail}
+                proofUploads={caseDetail.proof_uploads}
+                proofAnalysisStatus={caseDetail.proof_analysis_status}
                 onGoToCases={() => router.push('/cases')}
                 onStartNewDispute={handleStartNewDispute}
+                onCloseCase={() => {
+                  setEndError(null);
+                  setEndOpen(true);
+                }}
               />
             </div>
           </div>

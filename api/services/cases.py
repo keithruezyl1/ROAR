@@ -13,7 +13,9 @@ from api.db.models import Case
 # where customer or agent termination may close a case from any non-terminal state.
 VALID_TRANSITIONS: dict[str, list[str]] = {
     # Autonomous triage can execute directly without human approval.
-    "pending_triage": ["pending_triage", "approved_executing", "awaiting_approval", "escalated_human_required", "closed"],
+    "pending_triage": ["pending_triage", "awaiting_customer_proof", "awaiting_customer_decision", "approved_executing", "awaiting_approval", "escalated_human_required", "closed"],
+    "awaiting_customer_proof": ["pending_triage", "closed"],
+    "awaiting_customer_decision": ["escalated_human_required", "closed"],
     "awaiting_approval": ["approved_executing", "rejected_human_required", "closed"],
     "approved_executing": ["resolved", "closed"],
     "rejected_human_required": ["resolved", "closed"],

@@ -1,7 +1,7 @@
 import type { DisputeSubtype, DisputeType, IntakeReason, ResolutionPreference } from '@/types';
 
 export type IntakeIssueOption = {
-  id: DisputeSubtype;
+  id: IntakeReason;
   label: string;
   category: 'delivery' | 'product' | 'order';
   disputeType: DisputeType;
@@ -183,4 +183,8 @@ export function deriveCaseContextFromCase(data: {
     disputeSubtype: subtype,
     resolutionPreference: (data.resolution_preference as ResolutionPreference | null) ?? null,
   };
+}
+
+export function issueRequiresProof(subtype: DisputeSubtype | null | undefined): boolean {
+  return ['damaged_goods', 'wrong_item', 'not_as_described', 'partial_fulfillment'].includes(String(subtype ?? ''));
 }

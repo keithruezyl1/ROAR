@@ -6,11 +6,13 @@ import { Button } from '@/components/shared/Button';
 
 export function ChatInput({
   onSend,
+  onAttachFiles,
   disabled,
   placeholder,
   stateHint,
 }: {
   onSend: (text: string) => Promise<void> | void;
+  onAttachFiles?: (files: File[]) => Promise<void> | void;
   disabled?: boolean;
   placeholder?: string;
   stateHint?: string | null;
@@ -28,6 +30,27 @@ export function ChatInput({
     <div className="border-t border-border-default bg-bg-surface p-4">
       {stateHint ? <div className="mb-2 text-[12px] text-text-secondary">{stateHint}</div> : null}
       <div className="flex items-end gap-3">
+        {onAttachFiles ? (
+          <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[16px] border border-border-default bg-bg-elevated text-text-secondary transition-colors hover:bg-bg-sunken hover:text-text-primary">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+              <path d="M8.5 12.5l6.8-6.8a3 3 0 114.2 4.2l-8.2 8.2a5 5 0 11-7.1-7.1l8.5-8.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              disabled={disabled}
+              className="hidden"
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                if (files.length > 0) {
+                  void onAttachFiles(files);
+                }
+                event.currentTarget.value = '';
+              }}
+            />
+          </label>
+        ) : null}
         <textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}

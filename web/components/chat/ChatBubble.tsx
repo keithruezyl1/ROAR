@@ -3,7 +3,8 @@
 import * as React from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
-import type { UserRole } from '@/types';
+import { ChatAttachmentGallery } from './ChatAttachmentGallery';
+import type { ProofAttachment, UserRole } from '@/types';
 
 export type SenderType = 'customer' | 'ai' | 'agent' | 'system';
 
@@ -52,19 +53,26 @@ function getAvatarConfig(senderType: SenderType, currentUserRole?: UserRole | nu
 }
 
 export function ChatBubble({
+  caseId,
   senderType,
   content,
   createdAt,
   status,
   currentUserRole,
+  metadata,
 }: {
+  caseId: string;
   senderType: SenderType;
   content: string;
   createdAt?: string;
   status?: BubbleStatus;
   currentUserRole?: UserRole | null;
+  metadata?: Record<string, unknown> | null;
 }) {
   const timestamp = formatTime(createdAt);
+  const attachments = Array.isArray(metadata?.attachments)
+    ? (metadata?.attachments.filter((item): item is ProofAttachment => Boolean(item && typeof item === 'object' && 'proof_upload_id' in item)) as ProofAttachment[])
+    : [];
 
   if (senderType === 'system') {
     return (
@@ -108,6 +116,7 @@ export function ChatBubble({
           <div className={clsx('px-4 py-2.5 text-[16px] leading-relaxed shadow-[0_1px_0_rgba(0,0,0,0.06)]', bubbleClass)}>
             {content}
           </div>
+          {attachments.length > 0 ? <ChatAttachmentGallery caseId={caseId} attachments={attachments} /> : null}
 
           <div className={clsx('mt-1 flex items-center gap-2 text-[11px]', isOwnMessage ? 'justify-end' : 'justify-start')}>
             {status === 'error' ? <span className="text-danger">Message failed to send</span> : null}

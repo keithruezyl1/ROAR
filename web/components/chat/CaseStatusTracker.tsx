@@ -7,6 +7,8 @@ import { CASE_STATUS_LABELS } from '@/lib/constants';
 
 const AUTONOMOUS_STEPS: Array<{ key: string; label: string }> = [
   { key: 'pending_triage', label: CASE_STATUS_LABELS.pending_triage },
+  { key: 'awaiting_customer_proof', label: CASE_STATUS_LABELS.awaiting_customer_proof },
+  { key: 'awaiting_customer_decision', label: CASE_STATUS_LABELS.awaiting_customer_decision },
   { key: 'awaiting_approval', label: CASE_STATUS_LABELS.awaiting_approval },
   { key: 'approved_executing', label: CASE_STATUS_LABELS.approved_executing },
   { key: 'resolved', label: CASE_STATUS_LABELS.resolved },
@@ -15,6 +17,7 @@ const AUTONOMOUS_STEPS: Array<{ key: string; label: string }> = [
 
 const ESCALATION_STEPS: Array<{ key: string; label: string }> = [
   { key: 'pending_triage', label: CASE_STATUS_LABELS.pending_triage },
+  { key: 'awaiting_customer_decision', label: CASE_STATUS_LABELS.awaiting_customer_decision },
   { key: 'escalated_human_required', label: CASE_STATUS_LABELS.escalated_human_required },
   { key: 'closed', label: CASE_STATUS_LABELS.closed },
 ];

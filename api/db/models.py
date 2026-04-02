@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -44,6 +44,12 @@ class Case(Base):
     triage_decision: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     information_bundle: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     resolution_plan: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    proof_requirements: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    proof_analysis: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    proof_analysis_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    invalid_reason_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    invalid_reason_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    appeal_priority: Mapped[str | None] = mapped_column(String(20), nullable=True)
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     escalation_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_customer_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -54,6 +60,11 @@ class Case(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="case")
+    proof_uploads: Mapped[list["CaseProofUpload"]] = relationship(
+        "CaseProofUpload",
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
 
 
 class ChatMessage(Base):
@@ -68,6 +79,24 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     case: Mapped[Case] = relationship("Case", back_populates="messages")
+
+
+class CaseProofUpload(Base):
+    __tablename__ = "case_proof_uploads"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    case_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("cases.id"), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    image_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    image_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    image_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    case: Mapped[Case] = relationship("Case", back_populates="proof_uploads")
 
 
 class Policy(Base):
@@ -142,6 +171,8 @@ class CaseReport(Base):
     approval_outcome: Mapped[str | None] = mapped_column(String(20), nullable=True)
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     resolution_actions: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    evidence_bundle: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    proof_uploads: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
     outcome_summary: Mapped[str] = mapped_column(Text, nullable=False)
     close_reason: Mapped[str] = mapped_column(Text, nullable=False)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -163,6 +194,8 @@ class CaseReport(Base):
             "approval_outcome": self.approval_outcome,
             "rejection_reason": self.rejection_reason,
             "resolution_actions": self.resolution_actions,
+            "evidence_bundle": self.evidence_bundle,
+            "proof_uploads": self.proof_uploads,
             "outcome_summary": self.outcome_summary,
             "close_reason": self.close_reason,
             "generated_at": self.generated_at,

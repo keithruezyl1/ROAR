@@ -5,15 +5,16 @@ import clsx from 'clsx';
 
 import { api, customerApi } from '@/lib/api';
 import { decodeToken } from '@/lib/auth';
-import { BUSINESS_RULES } from '@/lib/constants';
+import { BUSINESS_RULES, INVALID_REASON_LABELS } from '@/lib/constants';
 import { INTAKE_ISSUE_OPTIONS } from '@/lib/intakeContext';
 import { ChatBubble, type SenderType } from './ChatBubble';
 import { ChatInput } from './ChatInput';
 import { ParticipantBanner } from './ParticipantBanner';
 import { TypingIndicator } from './TypingIndicator';
 import { StructuredResponse, getStructuredConfig } from './StructuredResponse';
+import { ProofUploadPanel } from './ProofUploadPanel';
 import { Button } from '@/components/shared/Button';
-import type { CaseStatus, DisputeType, IntakeReason, OrderDetails, ResolutionPreference } from '@/types';
+import type { CaseProofUpload, CaseStatus, DisputeType, IntakeReason, InvalidReasonCode, OrderDetails, ProofAnalysisStatus, ResolutionPreference } from '@/types';
 
 type Message = {
   id: string;
@@ -89,8 +90,13 @@ export function ChatWindow({
   disputeType,
   intakeReason,
   resolutionPreference,
+  invalidReasonCode,
+  invalidReasonDetail,
+  proofUploads = [],
+  proofAnalysisStatus,
   onGoToCases,
   onStartNewDispute,
+  onCloseCase,
 }: {
   caseId: string;
   mode: 'customer' | 'agent';
@@ -99,8 +105,13 @@ export function ChatWindow({
   intakeReason?: IntakeReason | null;
   intakeMessage?: string | null;
   resolutionPreference?: ResolutionPreference | null;
+  invalidReasonCode?: InvalidReasonCode | null;
+  invalidReasonDetail?: string | null;
+  proofUploads?: CaseProofUpload[];
+  proofAnalysisStatus?: ProofAnalysisStatus | null;
   onGoToCases?: () => void;
   onStartNewDispute?: () => void;
+  onCloseCase?: () => void;
 }) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [focused, setFocused] = React.useState(true);
@@ -110,6 +121,9 @@ export function ChatWindow({
   const [unseenCount, setUnseenCount] = React.useState(0);
   const [contextCondensed, setContextCondensed] = React.useState(false);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [selectedProofFiles, setSelectedProofFiles] = React.useState<File[]>([]);
+  const [proofActionError, setProofActionError] = React.useState<string | null>(null);
+  const [proofActionLoading, setProofActionLoading] = React.useState(false);
 
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = React.useRef(0);
@@ -262,6 +276,8 @@ export function ChatWindow({
   const lastMessage = messages[messages.length - 1];
   const lastAiMessage = [...messages].reverse().find((message) => message.sender_type === 'ai');
   const isClosed = caseStatus === 'closed';
+  const awaitingProof = caseStatus === 'awaiting_customer_proof';
+  const awaitingCustomerDecision = caseStatus === 'awaiting_customer_decision';
 
   const awaitingAiReply =
     mode === 'customer' &&
@@ -316,28 +332,94 @@ export function ChatWindow({
     return `${names[0]}, ${names[1]} (+${names.length - 2} more)`;
   }, [orderDetails]);
 
-  const inputDisabled = isClosed || sending || awaitingAiReply || showStructured;
-  const showComposer = !isClosed && !showStructured && !awaitingAiReply;
+  const inputDisabled = isClosed || sending || awaitingAiReply || showStructured || awaitingProof || awaitingCustomerDecision;
+  const showComposer = !isClosed && !showStructured && !awaitingAiReply && !awaitingProof && !awaitingCustomerDecision;
 
-  const placeholder = isClosed
-    ? 'Conversation closed'
-    : showStructured
-      ? 'Select an option above...'
-      : awaitingAiReply
-        ? 'RAI is reviewing your message...'
-        : mode === 'customer'
-          ? 'Type your message...'
-          : 'Reply to customer...';
+  let placeholder = mode === 'customer' ? 'Type your message...' : 'Reply to customer...';
+  if (isClosed) {
+    placeholder = 'Conversation closed';
+  } else if (showStructured) {
+    placeholder = 'Select an option above...';
+  } else if (awaitingAiReply) {
+    placeholder = 'RAI is reviewing your message...';
+  } else if (awaitingProof) {
+    placeholder = 'Upload proof to continue';
+  } else if (awaitingCustomerDecision) {
+    placeholder = 'Choose an action below';
+  }
 
-  const stateHint = isClosed
-    ? null
-    : showStructured
-      ? 'Choose a structured response above to continue.'
-      : awaitingAiReply
-        ? 'RAI is preparing a response...'
-        : sending
-          ? 'Sending message...'
-          : null;
+  let stateHint: string | null = null;
+  if (showStructured) {
+    stateHint = 'Choose a structured response above to continue.';
+  } else if (awaitingAiReply) {
+    stateHint = 'RAI is preparing a response...';
+  } else if (awaitingProof) {
+    stateHint = 'This case requires proof before triage can continue.';
+  } else if (awaitingCustomerDecision) {
+    stateHint = 'Review the explanation below and either close the case or appeal.';
+  } else if (sending) {
+    stateHint = 'Sending message...';
+  }
+
+  const invalidReasonMessage = invalidReasonCode
+    ? `${INVALID_REASON_LABELS[invalidReasonCode] ?? 'This case cannot continue automatically.'}${invalidReasonDetail ? ` ${invalidReasonDetail}` : ''}`
+    : invalidReasonDetail ?? null;
+
+  const uploadProofs = async () => {
+    if (selectedProofFiles.length === 0) return;
+    setProofActionLoading(true);
+    setProofActionError(null);
+    try {
+      await customerApi.uploadProofs(caseId, selectedProofFiles);
+      setSelectedProofFiles([]);
+      await load();
+    } catch (error) {
+      setProofActionError(error instanceof Error ? error.message : 'Unable to upload proof.');
+    } finally {
+      setProofActionLoading(false);
+    }
+  };
+
+  const deleteProof = async (proofId: string) => {
+    setProofActionLoading(true);
+    setProofActionError(null);
+    try {
+      await customerApi.deleteProof(caseId, proofId);
+      await load();
+    } catch (error) {
+      setProofActionError(error instanceof Error ? error.message : 'Unable to remove proof.');
+    } finally {
+      setProofActionLoading(false);
+    }
+  };
+
+  const appealCase = async () => {
+    setProofActionLoading(true);
+    setProofActionError(null);
+    try {
+      await customerApi.appealCase(caseId);
+      await load();
+    } catch (error) {
+      setProofActionError(error instanceof Error ? error.message : 'Unable to appeal this case.');
+    } finally {
+      setProofActionLoading(false);
+    }
+  };
+
+  const attachFilesToChat = async (files: File[]) => {
+    setProofActionError(null);
+    setSelectedProofFiles(files.slice(0, BUSINESS_RULES.MAX_PROOF_UPLOADS));
+    setProofActionLoading(true);
+    try {
+      await customerApi.uploadProofs(caseId, files.slice(0, BUSINESS_RULES.MAX_PROOF_UPLOADS));
+      await load();
+    } catch (error) {
+      setProofActionError(error instanceof Error ? error.message : 'Unable to attach photos.');
+    } finally {
+      setSelectedProofFiles([]);
+      setProofActionLoading(false);
+    }
+  };
 
   const onSend = async (text: string, metadata?: Record<string, unknown> | null) => {
     const clientMessageId = crypto.randomUUID();
@@ -432,14 +514,62 @@ export function ChatWindow({
           </div>
         </div>
 
+        {mode === 'customer' && awaitingProof ? (
+          <div className="mb-4">
+            <ProofUploadPanel
+              selectedFiles={selectedProofFiles}
+              uploads={proofUploads}
+              uploading={proofActionLoading}
+              error={proofActionError}
+              onSelect={(files) => {
+                setProofActionError(null);
+                setSelectedProofFiles((current) => [...current, ...files].slice(0, BUSINESS_RULES.MAX_PROOF_UPLOADS - proofUploads.length));
+              }}
+              onRemoveSelected={(index) => {
+                setSelectedProofFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+              }}
+              onDeleteExisting={(proofId) => deleteProof(proofId)}
+              onUpload={uploadProofs}
+              title="Proof required to continue"
+              description={
+                proofAnalysisStatus === 'failed'
+                  ? 'Proof analysis failed previously. Uploading again will retry analysis.'
+                  : 'Upload one or two images showing the issue so triage can continue.'
+              }
+            />
+          </div>
+        ) : null}
+
+        {mode === 'customer' && awaitingCustomerDecision ? (
+          <div className="mb-4 rounded-card border border-warning bg-warning-bg p-4">
+            <div className="text-[14px] font-semibold text-warning">Decision needed</div>
+            <div className="mt-2 text-[13px] text-text-secondary">
+              {invalidReasonMessage ?? 'This case cannot continue automatically under current policy.'}
+            </div>
+            {proofActionError ? <div className="mt-2 text-[12px] text-danger">{proofActionError}</div> : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="danger" size="sm" onClick={() => void appealCase()} disabled={proofActionLoading}>
+                Appeal to human
+              </Button>
+              {onCloseCase ? (
+                <Button variant="ghost" size="sm" onClick={onCloseCase} disabled={proofActionLoading}>
+                  Close case
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {messages.map((message) => (
           <React.Fragment key={message.id}>
             <ChatBubble
+              caseId={caseId}
               senderType={message.sender_type}
               content={message.content}
               createdAt={message.created_at}
               status={message.local_status ?? undefined}
               currentUserRole={currentUserRole}
+              metadata={message.metadata}
             />
             {showStructured && lastAiMessage?.id === message.id && disputeType ? (
               <StructuredResponse
@@ -486,7 +616,13 @@ export function ChatWindow({
       ) : null}
 
       {showComposer ? (
-        <ChatInput onSend={onSend} disabled={inputDisabled} placeholder={placeholder} stateHint={stateHint} />
+        <ChatInput
+          onSend={onSend}
+          onAttachFiles={mode === 'customer' ? attachFilesToChat : undefined}
+          disabled={inputDisabled}
+          placeholder={placeholder}
+          stateHint={stateHint}
+        />
       ) : null}
 
       {unseenCount > 0 && !atBottom ? (

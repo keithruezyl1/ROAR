@@ -26,6 +26,8 @@ type CustomerCase = {
 
 const DOT_CLASS_BY_STATUS: Record<CaseStatus, string> = {
   pending_triage: 'bg-primary',
+  awaiting_customer_proof: 'bg-warning',
+  awaiting_customer_decision: 'bg-warning',
   awaiting_approval: 'bg-warning',
   approved_executing: 'bg-info',
   rejected_human_required: 'bg-danger',

@@ -2,6 +2,8 @@ import clsx from 'clsx';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   pending_triage: { bg: 'bg-info-bg', text: 'text-info', label: 'Pending triage' },
+  awaiting_customer_proof: { bg: 'bg-warning-bg', text: 'text-warning', label: 'Awaiting your proof' },
+  awaiting_customer_decision: { bg: 'bg-warning-bg', text: 'text-warning', label: 'Awaiting your decision' },
   awaiting_approval: { bg: 'bg-warning-bg', text: 'text-warning', label: 'Awaiting approval' },
   approved_executing: { bg: 'bg-primary-subtle', text: 'text-primary', label: 'Executing' },
   rejected_human_required: { bg: 'bg-danger-bg', text: 'text-danger', label: 'Rejected - human required' },
