@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 
-import { Button } from '@/components/shared/Button';
-
 export type StructuredOption = {
   label: string;
   value: string;

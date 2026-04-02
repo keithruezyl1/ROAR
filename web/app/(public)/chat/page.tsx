@@ -10,7 +10,7 @@ import { DarkModeToggle } from '@/components/shared/DarkModeToggle';
 import { logout } from '@/lib/auth';
 import { Button } from '@/components/shared/Button';
 
-export default function ChatPage() {
+function ChatContent() {
   const searchParams = useSearchParams();
   const resumeCaseId = searchParams.get('caseId');
 
@@ -59,5 +59,13 @@ export default function ChatPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-bg-base p-8 text-text-primary">Loading chat...</div>}>
+      <ChatContent />
+    </React.Suspense>
   );
 }

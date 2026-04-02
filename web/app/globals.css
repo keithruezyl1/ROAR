@@ -1,29 +1,67 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   ROAR Engine Design System — 2026 Enterprise Standard
+   Source of truth: docs/Roar_ownDesignSystem.md
+
+   LANDING PAGE ADAPTATION NOTES:
+   The design system spec defines bg-base as #F4F5F7 (gray canvas) for
+   dashboard UI where white cards sit on a gray canvas. For the LANDING
+   PAGE, we invert this: bg-base is white (the page background), and
+   bg-surface is a warm, barely-perceptible off-white used for alternating
+   sections. This prevents the "dirty stripe" effect that occurs when
+   full-width gray sections alternate with full-width white sections.
+
+   The dashboard will use the original spec values directly.
+   ===================================================== */
+
 :root {
+  /* ── Brand & Primary Actions ── */
   --color-primary:            #D4581A;
   --color-primary-hover:      #B04614;
   --color-primary-active:     #8A3410;
   --color-primary-subtle:     #FAE8DC;
   --color-primary-border:     #F5C4A3;
 
-  --color-bg-base:            #FFFFFF;
-  --color-bg-surface:         #F9F9F9;
+  /* ── Backgrounds & Canvas ──
+     Landing page hierarchy:
+     • bg-base (#FAFAFA): The universal page canvas. Near-white but not pure
+       white, which prevents eye strain and gives cards a place to breathe.
+     • bg-surface (#FFFFFF): Cards, forms, elevated containers that need to
+       "pop" above the canvas.
+     • bg-elevated (#FFFFFF): Same as surface — for modals, dropdowns, tooltips.
+     • bg-sunken (#F0F0F0): Recessed areas — input backgrounds, code blocks,
+       billing toggles. */
+  --color-bg-base:            #FAFAFA;
+  --color-bg-surface:         #FFFFFF;
   --color-bg-elevated:        #FFFFFF;
   --color-bg-sunken:          #F0F0F0;
 
-  --color-border-default:     #E0E0E0;
-  --color-border-strong:      #CCCCCC;
+  /* ── Section Rhythm Token ──
+     Used exclusively for alternating landing page sections to create visual
+     rhythm. This is the "gray band" color that differentiates sections
+     without creating a jarring white↔gray clash.
+     The key: it must be WARM (not blue-gray) and only 2-3 steps from white. */
+  --color-bg-section-alt:     #F5F5F3;
+
+  /* ── Borders ──
+     For landing pages, we use a very subtle visible border instead of pure
+     transparent, because full-width sections need structural definition
+     that background-shift alone can't provide at the section level. */
+  --color-border-default:     rgba(0, 0, 0, 0.06);
+  --color-border-strong:      #E0E0E0;
   --color-border-focus:       #D4581A;
 
+  /* ── Typography ── */
   --color-text-primary:       #111111;
   --color-text-secondary:     #444444;
   --color-text-muted:         #888888;
   --color-text-inverse:       #FFFFFF;
   --color-text-primary-brand: #D4581A;
 
+  /* ── Semantic States ── */
   --color-success:            #3B6D11;
   --color-success-bg:         #EAF3DE;
   --color-warning:            #BA7517;
@@ -33,10 +71,31 @@
   --color-info:               #185FA5;
   --color-info-bg:            #E6F1FB;
 
+  /* ── Typography Tokens ── */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* ── 4-Point Spacing System ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ===== APPLE 2026 SHADOW SYSTEM ===== */
+  --shadow-level-0: none;
+  --shadow-level-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-level-2: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-level-3: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-level-4: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(212, 88, 26, 0.4);
 }
 
+/* ── Dark Mode: The Pure Black Ban ── */
 .dark {
   --color-primary:            #E8862E;
   --color-primary-hover:      #D4581A;
@@ -44,19 +103,20 @@
   --color-primary-subtle:     #3A1A0A;
   --color-primary-border:     #6B2F10;
 
-  --color-bg-base:            #111111;
-  --color-bg-surface:         #1A1A1A;
+  --color-bg-base:            #121212;
+  --color-bg-surface:         #1E1E1E;
   --color-bg-elevated:        #2D2D2D;
   --color-bg-sunken:          #0A0A0A;
+  --color-bg-section-alt:     #161616;
 
-  --color-border-default:     #333333;
+  --color-border-default:     rgba(255, 255, 255, 0.06);
   --color-border-strong:      #444444;
   --color-border-focus:       #E8862E;
 
   --color-text-primary:       #F5F5F5;
   --color-text-secondary:     #AAAAAA;
   --color-text-muted:         #666666;
-  --color-text-inverse:       #111111;
+  --color-text-inverse:       #121212;
   --color-text-primary-brand: #E8862E;
 
   --color-success:            #7DC142;
@@ -67,8 +127,16 @@
   --color-danger-bg:          #2A0000;
   --color-info:               #5B9ED6;
   --color-info-bg:            #001629;
+
+  --shadow-level-0: none;
+  --shadow-level-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-level-2: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-level-3: 0 2px 4px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-level-4: 0 4px 8px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.4), 0 12px 24px rgba(0, 0, 0, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(232, 134, 46, 0.4);
 }
 
+/* ── Base Reset ── */
 * {
   box-sizing: border-box;
 }
@@ -77,3 +145,15 @@ html {
   font-family: var(--font-sans);
 }
 
+/* ── Typography: Design System §3.2 ── */
+body {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Pro Text Hack: Design System §3.1 ── */
+.pro-text-hack {
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}

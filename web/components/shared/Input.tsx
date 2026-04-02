@@ -1,4 +1,4 @@
-﻿import * as React from 'react';
+import * as React from 'react';
 import clsx from 'clsx';
 
 export function Input({
@@ -8,7 +8,7 @@ export function Input({
   className,
   disabled,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & {
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   label: string;
   error?: string;
   size?: 'sm' | 'default';

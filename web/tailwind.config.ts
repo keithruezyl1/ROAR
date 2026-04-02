@@ -1,4 +1,4 @@
-﻿import type { Config } from 'tailwindcss';
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: 'class',
@@ -22,6 +22,7 @@ const config: Config = {
           surface: 'var(--color-bg-surface)',
           elevated: 'var(--color-bg-elevated)',
           sunken: 'var(--color-bg-sunken)',
+          alt: 'var(--color-bg-section-alt)',
         },
         border: {
           default: 'var(--color-border-default)',
@@ -56,6 +57,14 @@ const config: Config = {
         fast: '150ms',
         normal: '220ms',
         slow: '350ms',
+      },
+      boxShadow: {
+        none: 'var(--shadow-level-0)',
+        sm: 'var(--shadow-level-1)',
+        md: 'var(--shadow-level-2)',
+        lg: 'var(--shadow-level-3)',
+        xl: 'var(--shadow-level-4)',
+        focus: 'var(--shadow-focus)',
       },
     },
   },
