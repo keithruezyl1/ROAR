@@ -12,6 +12,7 @@ type Case = {
   reference_number: string;
   status: string;
   dispute_type: 'refund' | 'delivery';
+  resolution_preference?: 'refund' | 'replacement' | 'return' | null;
   customer_name: string;
   order_id: string;
   created_at: string;
@@ -31,12 +32,12 @@ export default function EscalationDashboardPage() {
   const [filters, setFilters] = React.useState<Filters>({
     search: '',
     dispute_type: '',
-    status: '',
+    status: 'escalated_human_required',
   });
 
   const load = React.useCallback(async () => {
     const params = new URLSearchParams();
-    params.set('status', filters.status || 'escalated_human_required');
+    if (filters.status) params.set('status', filters.status);
 
     if (filters.search) params.set('search', filters.search);
     if (filters.dispute_type) params.set('dispute_type', filters.dispute_type);
@@ -60,15 +61,24 @@ export default function EscalationDashboardPage() {
       <SearchFilterBar
         value={filters}
         onChange={setFilters}
-        statusOptions={[{ value: 'escalated_human_required', label: 'Escalated' }]}
+        statusOptions={[
+          { value: 'escalated_human_required', label: 'Escalated' },
+          { value: 'approved_executing', label: 'Attended / In progress' },
+          { value: 'resolved', label: 'Finished (Resolved)' },
+          { value: 'closed', label: 'Closed' },
+        ]}
       />
 
       <div className="mt-6">
         <DashboardGrid
           variant="escalation"
           cases={cases}
-          emptyTitle="No escalations"
-          emptyDescription="Escalated cases will appear here for human handling."
+          emptyTitle={filters.status ? 'No cases in this status' : 'No cases found'}
+          emptyDescription={
+            filters.status
+              ? 'Try another status or clear filters to see all escalation cases.'
+              : 'No matching cases for the selected filters.'
+          }
         />
       </div>
     </AppShell>

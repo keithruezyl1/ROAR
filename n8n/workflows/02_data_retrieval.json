@@ -220,7 +220,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const oms = $items('Query OMS')[0]?.json ?? {};\nconst paymentTxnItems = $items('Query Payment - Txn');\nconst refundsItems = $items('Query Payment - Refunds');\nconst logisticsItems = $items('Query Logistics');\nconst inventoryItems = $items('Query Inventory');\n\nconst transaction = paymentTxnItems.length ? paymentTxnItems[0].json.transaction : null;\nconst refund_records = refundsItems.length ? refundsItems[0].json.refund_records : null;\nconst shipment = logisticsItems.length ? logisticsItems[0].json.shipment : null;\nconst tracking_events = logisticsItems.length ? logisticsItems[0].json.tracking_events : null;\nconst stock_records = inventoryItems.length ? inventoryItems[0].json.stock_records : null;\n\nconst input = $node['Webhook Trigger'].json.body || $json.body || $json;\n\nconst bundle = {\n  order: oms.order ?? null,\n  order_items: oms.order_items ?? [],\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n  dispute_type: input.dispute_type,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [{\n  case_id: input.case_id,\n  dispute_type: input.dispute_type,\n  information_bundle: bundle,\n}];\n"
+        "jsCode": "const oms = $items('Query OMS')[0]?.json ?? {};\nconst paymentTxnItems = $items('Query Payment - Txn');\nconst refundsItems = $items('Query Payment - Refunds');\nconst logisticsItems = $items('Query Logistics');\nconst inventoryItems = $items('Query Inventory');\n\nconst transaction = paymentTxnItems.length ? paymentTxnItems[0].json.transaction : null;\nconst refund_records = refundsItems.length ? refundsItems[0].json.refund_records : null;\nconst shipment = logisticsItems.length ? logisticsItems[0].json.shipment : null;\nconst tracking_events = logisticsItems.length ? logisticsItems[0].json.tracking_events : null;\nconst stock_records = inventoryItems.length ? inventoryItems[0].json.stock_records : null;\n\nconst input = $node['Webhook Trigger'].json.body || $json.body || $json;\n\nconst bundle = {\n  order: oms.order ?? null,\n  order_items: oms.order_items ?? [],\n  transaction,\n  refund_records,\n  shipment,\n  tracking_events,\n  stock_records,\n  dispute_type: input.dispute_type,\n  dispute_subtype: input.dispute_subtype ?? null,\n  resolution_preference: input.resolution_preference ?? null,\n  queried_at: new Date().toISOString(),\n};\n\nreturn [{\n  case_id: input.case_id,\n  dispute_type: input.dispute_type,\n  dispute_subtype: input.dispute_subtype ?? null,\n  resolution_preference: input.resolution_preference ?? null,\n  information_bundle: bundle,\n}];\n"
       },
       "id": "9b7d0c3c-7f1c-4c0e-9f36-0d98b67a3fd4",
       "name": "Assemble Bundle",
@@ -283,7 +283,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"case_id\": $json.case_id,\n  \"dispute_type\": $json.dispute_type\n}",
+        "jsonBody": "={\n  \"case_id\": $json.case_id,\n  \"dispute_type\": $json.dispute_type,\n  \"dispute_subtype\": $json.dispute_subtype,\n  \"resolution_preference\": $json.resolution_preference\n}",
         "options": {}
       },
       "id": "63c3b6b3-bd0a-4c0d-8b3a-3ce0b6cc2a31",

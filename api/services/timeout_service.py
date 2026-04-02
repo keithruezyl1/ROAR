@@ -24,18 +24,14 @@ CHECK_INTERVAL_SECONDS = 300  # 5 minutes
 
 ACTIVE_STATUSES = [
     "pending_triage",
-    "awaiting_approval",
-    "approved_executing",
-    "rejected_human_required",
-    "escalated_human_required",
-    "resolved",
 ]
 
 
 async def check_and_close_inactive_cases() -> int:
     """
-    Find all active cases where last_customer_message_at is older than
+    Find intake-phase cases where last_customer_message_at is older than
     INACTIVITY_TIMEOUT_MINUTES and close them with timeout reason.
+    Human-handled, approval, and resolved states must remain open until explicitly closed.
     Returns number of cases closed.
     """
     closed_count = 0

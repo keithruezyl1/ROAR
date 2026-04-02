@@ -12,7 +12,8 @@ from api.db.models import Case
 # Valid status transitions - aligned to the documented ROAR close behavior,
 # where customer or agent termination may close a case from any non-terminal state.
 VALID_TRANSITIONS: dict[str, list[str]] = {
-    "pending_triage": ["pending_triage", "awaiting_approval", "escalated_human_required", "closed"],
+    # Autonomous triage can execute directly without human approval.
+    "pending_triage": ["pending_triage", "approved_executing", "awaiting_approval", "escalated_human_required", "closed"],
     "awaiting_approval": ["approved_executing", "rejected_human_required", "closed"],
     "approved_executing": ["resolved", "closed"],
     "rejected_human_required": ["resolved", "closed"],

@@ -31,12 +31,12 @@ export default function ApproverDashboardPage() {
   const [filters, setFilters] = React.useState<Filters>({
     search: '',
     dispute_type: '',
-    status: '',
+    status: 'awaiting_approval',
   });
 
   const load = React.useCallback(async () => {
     const params = new URLSearchParams();
-    params.set('status', filters.status || 'awaiting_approval');
+    if (filters.status) params.set('status', filters.status);
 
     if (filters.search) params.set('search', filters.search);
     if (filters.dispute_type) params.set('dispute_type', filters.dispute_type);
@@ -63,8 +63,10 @@ export default function ApproverDashboardPage() {
         resultsCount={cases.length}
         statusOptions={[
           { value: 'awaiting_approval', label: 'Awaiting approval' },
-          { value: 'approved_executing', label: 'Approved' },
+          { value: 'approved_executing', label: 'Attended / In progress' },
           { value: 'rejected_human_required', label: 'Rejected' },
+          { value: 'resolved', label: 'Finished (Resolved)' },
+          { value: 'closed', label: 'Closed' },
         ]}
       />
 
@@ -72,8 +74,12 @@ export default function ApproverDashboardPage() {
         <DashboardGrid
           variant="approval"
           cases={cases}
-          emptyTitle="No cases awaiting approval"
-          emptyDescription="When triage completes, cases will appear here for review."
+          emptyTitle={filters.status ? 'No cases in this status' : 'No cases found'}
+          emptyDescription={
+            filters.status
+              ? 'Try another status or clear filters to see all approver cases.'
+              : 'No matching cases for the selected filters.'
+          }
         />
       </div>
     </AppShell>

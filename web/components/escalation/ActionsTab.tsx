@@ -207,7 +207,7 @@ export function ActionsTab({
       )}
 
       <div className="mt-auto">
-        <ConversationClosePanel onConfirm={onClose} />
+        <ConversationClosePanel onConfirm={onClose} requireFinalConfirmation />
       </div>
 
       <RefundModal

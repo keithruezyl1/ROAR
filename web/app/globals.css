@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -77,3 +77,27 @@ html {
   font-family: var(--font-sans);
 }
 
+
+.roar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) var(--color-bg-sunken);
+}
+
+.roar-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.roar-scroll::-webkit-scrollbar-track {
+  background: var(--color-bg-sunken);
+}
+
+.roar-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg-sunken);
+}
+
+.roar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

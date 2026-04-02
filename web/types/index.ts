@@ -1,12 +1,27 @@
 export type IntakeReason =
-  | 'charged_but_received_nothing'
+  | 'non_receipt'
+  | 'delayed'
+  | 'exception'
+  | 'lost'
+  | 'not_as_described'
+  | 'damaged_goods'
   | 'wrong_item'
-  | 'damaged_item'
-  | 'partial_order'
-  | 'late_or_missing_delivery'
-  | 'return_for_refund'
-  | 'other_refund'
-  | 'other_delivery';
+  | 'partial_fulfillment'
+  | 'duplicate_charge'
+  | 'return_request'
+  | 'changed_mind'
+  | 'other';
+
+// Backward-compat legacy aliases still accepted by API normalization.
+export type LegacyIntakeReason =
+  | 'package_never_arrived'
+  | 'delivery_late'
+  | 'wrong_delivery_address'
+  | 'quality_issue'
+  | 'return_for_refund';
+
+export type DisputeSubtype = IntakeReason | LegacyIntakeReason;
+export type ResolutionPreference = 'refund' | 'replacement' | 'return';
 
 // Case status enum
 export type CaseStatus =
@@ -30,6 +45,8 @@ export interface Case {
   reference_number: string;
   order_id: string;
   dispute_type: DisputeType;
+  dispute_subtype: DisputeSubtype | null;
+  resolution_preference: ResolutionPreference | null;
   customer_name: string;
   customer_email: string;
   intake_message: string;
@@ -84,7 +101,7 @@ export interface InformationBundle {
 }
 
 export interface ResolutionPlan {
-  resolution_type: 'refund' | 'replacement' | 'redelivery' | 'store_credit';
+  resolution_type: 'refund' | 'replacement' | 'return' | 'redelivery' | 'store_credit';
   amount: number | null;
   steps: string[];
   customer_message: string;
@@ -143,6 +160,8 @@ export interface CaseReport {
 export interface CustomerOrder {
   order_id: string;
   status: string;
+  disputable: boolean;
+  dispute_block_reason: string | null;
   total_amount: number;
   created_at: string;
   fulfilled_at: string | null;
@@ -173,4 +192,40 @@ export interface OrderDetails {
     tracking_number: string;
     estimated_delivery: string;
   };
+}
+
+export type ReplacementRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'executing'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled';
+
+export interface ReplacementRequestItem {
+  item_id?: string | null;
+  sku?: string | null;
+  quantity: number;
+  product_name?: string | null;
+  warehouse_location?: string | null;
+  quantity_available_now?: number | null;
+  unit_price?: number | null;
+  order_id?: string | null;
+}
+
+export interface ReplacementRequest {
+  id: string;
+  case_id: string;
+  order_id: string;
+  status: ReplacementRequestStatus;
+  requested_at: string;
+  approved_at: string | null;
+  executed_at: string | null;
+  closed_at: string | null;
+  reason: string;
+  replacement_items: ReplacementRequestItem[];
+  eligible_amount: number | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }

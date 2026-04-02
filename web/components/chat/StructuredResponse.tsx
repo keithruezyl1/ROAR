@@ -12,12 +12,13 @@ export interface StructuredResponseProps {
   disputeType: DisputeType;
   intakeReason: IntakeReason | null;
   orderDetails: OrderDetails | null;
-  onSend: (content: string) => void | Promise<void>;
+  onSend: (content: string, metadata?: Record<string, unknown> | null) => void | Promise<void>;
   multiSelect?: boolean;
 }
 
 type QuestionType =
   | 'ISSUE_DETAILS'
+  | 'Q_AFFECTED_SCOPE'
   | 'Q_REFUND_RECEIPT'
   | 'Q_REFUND_PAYMENT'
   | 'Q_REFUND_TIMING'
@@ -36,7 +37,7 @@ type StructuredConfig = {
   multiSelect?: boolean;
 };
 
-const SHARED_OPTIONS: Record<Exclude<QuestionType, 'ISSUE_DETAILS' | 'Q_ITEM_SELECTION' | 'Q_AMOUNT_CONFIRM' | 'Q_ORDER_CONFIRM' | 'Q_TRACKING_CONFIRM' | 'Q_EDD_CONFIRM'>, string[]> = {
+const SHARED_OPTIONS: Record<Exclude<QuestionType, 'ISSUE_DETAILS' | 'Q_AFFECTED_SCOPE' | 'Q_ITEM_SELECTION' | 'Q_AMOUNT_CONFIRM' | 'Q_ORDER_CONFIRM' | 'Q_TRACKING_CONFIRM' | 'Q_EDD_CONFIRM'>, string[]> = {
   Q_REFUND_RECEIPT: [
     'Yes, I received everything but want a refund',
     'Yes, I received part of my order',
@@ -76,54 +77,80 @@ const SHARED_OPTIONS: Record<Exclude<QuestionType, 'ISSUE_DETAILS' | 'Q_ITEM_SEL
   ],
 };
 
-const ISSUE_DETAIL_OPTIONS: Record<IntakeReason, string[]> = {
-  charged_but_received_nothing: [
+const ISSUE_DETAIL_OPTIONS: Partial<Record<IntakeReason, string[]>> = {
+  non_receipt: [
     'I never received any delivery attempt',
     'The order appears unfulfilled',
     'Tracking never showed any real progress',
     'Other',
   ],
-  wrong_item: [
-    'It was a completely different item',
-    'It was the wrong size, color, or variant',
-    'Part of the order was wrong',
-    'Other',
-  ],
-  damaged_item: [
-    'The item itself is damaged',
-    'The packaging was damaged too',
-    'Only some items were damaged',
-    'Other',
-  ],
-  partial_order: [
-    'Some items arrived and some were missing',
-    'The package arrived incomplete',
-    'I received the wrong quantity',
-    'Other',
-  ],
-  late_or_missing_delivery: [
+  delayed: [
     'Tracking shows delayed in transit',
     "It says delivered but I didn't receive it",
     'There have been no updates for several days',
     'Other',
   ],
-  return_for_refund: [
+  exception: [
+    'Tracking shows an exception status',
+    'Courier marked failed attempt',
+    'Package appears stuck with no movement',
+    'Other',
+  ],
+  lost: [
+    'Tracking says lost parcel',
+    'Carrier confirmed package cannot be found',
+    'No updates and carrier suggested filing a claim',
+    'Other',
+  ],
+  not_as_described: [
+    'Product quality is below expectations',
+    'Item specifications are incorrect',
+    'Listing details do not match the product',
+    'Other',
+  ],
+  wrong_item: [
+    'It was a completely different item',
+    'It was the wrong size, color, or variant',
+    'I received an extra or unexpected item',
+    'Other',
+  ],
+  damaged_goods: [
+    'The item itself is damaged',
+    'Only the packaging is damaged',
+    'Both the item and packaging are damaged',
+    'Other',
+  ],
+  partial_fulfillment: [
+    'Items were missing from the package',
+    'I received fewer units than ordered',
+    'One package in a multi-package order never arrived',
+    'Other',
+  ],
+  return_request: [
     'The item is unused and I want to return it',
     'I changed my mind about the purchase',
     'The item was opened but I still want to return it',
     'Other',
   ],
-  other_refund: [
+  changed_mind: [
+    'I ordered by mistake',
+    'I no longer need the item',
+    'I found a better alternative',
+    'Other',
+  ],
+  other: [
     'It is mainly a refund issue',
     'It is a return-related refund issue',
     'Other',
   ],
-  other_delivery: [
-    'It is mainly a delivery issue',
-    'It is related to tracking or delivery status',
-    'Other',
-  ],
 };
+
+const AFFECTED_SCOPE_OPTIONS: string[] = [
+  'All items are affected',
+  'Only some items are affected',
+  'I am not sure yet',
+  'Other',
+];
 
 function normalize(text: string) {
   return text.toLowerCase();
@@ -133,11 +160,49 @@ function containsAny(text: string, phrases: string[]) {
   return phrases.some((phrase) => text.includes(phrase));
 }
 
+function isItemSelectionQuestion(text: string) {
+  return (
+    containsAny(text, ['which items', 'what items']) ||
+    (containsAny(text, ['which item', 'what item']) && containsAny(text, ['missing', 'damaged', 'wrong', 'affected', 'received'])) ||
+    (containsAny(text, ['items']) && containsAny(text, ['missing', 'damaged', 'wrong', 'affected', 'received'])) ||
+    (containsAny(text, ['item']) && containsAny(text, ['missing', 'damaged', 'wrong', 'affected', 'received']))
+  );
+}
+
+function isScopeQuestion(text: string) {
+  return (
+    (
+      containsAny(text, ['all items', 'entire order', 'whole order']) &&
+      containsAny(text, ['some items', 'part of the order', 'only some'])
+    ) ||
+    containsAny(text, ['all or some']) ||
+    containsAny(text, ['all items or only some']) ||
+    containsAny(text, ['is it all items', 'is it only some items'])
+  );
+}
+
 function matchQuestionType(question: string, disputeType: DisputeType, multiSelect?: boolean): QuestionType | null {
   const text = normalize(question);
 
-  if (containsAny(text, ['more detail', 'what happened', 'tell me more', 'share a bit more'])) return 'ISSUE_DETAILS';
-  if (containsAny(text, ['which items', 'what items']) && multiSelect) return 'Q_ITEM_SELECTION';
+  if (isScopeQuestion(text)) return 'Q_AFFECTED_SCOPE';
+  if (
+    containsAny(text, [
+      'more detail',
+      'what happened',
+      'tell me more',
+      'share a bit more',
+      'what issue are you experiencing',
+      'what issue are you having',
+      'what type of problem are you experiencing',
+      'what type of issue are you experiencing',
+      'what type of damage occurred',
+      'which best describes the damage',
+      'item damaged packaging damaged or both',
+      'describe the problem',
+      'describe the issue',
+    ])
+  ) return 'ISSUE_DETAILS';
+  if (isItemSelectionQuestion(text) && multiSelect) return 'Q_ITEM_SELECTION';
   if (containsAny(text, ['amount']) && containsAny(text, ['confirm', 'correct'])) return 'Q_AMOUNT_CONFIRM';
   if (containsAny(text, ['order']) && containsAny(text, ['referring to', 'the right order', 'confirm this order'])) return 'Q_ORDER_CONFIRM';
 
@@ -172,10 +237,16 @@ export function getStructuredConfig({
   switch (questionType) {
     case 'ISSUE_DETAILS':
       if (!intakeReason) return null;
-      return { questionType, options: ISSUE_DETAIL_OPTIONS[intakeReason] ?? [] };
+      {
+        const options = ISSUE_DETAIL_OPTIONS[intakeReason] ?? [];
+        if (options.length === 0) return null;
+        return { questionType, options };
+      }
+    case 'Q_AFFECTED_SCOPE':
+      return { questionType, options: AFFECTED_SCOPE_OPTIONS };
     case 'Q_ITEM_SELECTION': {
       const items = orderDetails?.items?.map((item) => item.item_name) ?? [];
-      if (items.length <= 1) return null;
+      if (items.length === 0) return null;
       return { questionType, options: items, multiSelect: true };
     }
     case 'Q_AMOUNT_CONFIRM': {
@@ -236,11 +307,15 @@ export function StructuredResponse({
   if (!config) return null;
 
   const otherSelected = selected.includes('Other');
+  const optionToOrderItem = React.useMemo(() => {
+    const pairs = (orderDetails?.items ?? []).map((item) => [item.item_name, item] as const);
+    return new Map(pairs);
+  }, [orderDetails]);
 
-  const sendValue = async (value: string) => {
+  const sendValue = async (value: string, metadata?: Record<string, unknown> | null) => {
     setSending(true);
     try {
-      await onSend(value);
+      await onSend(value, metadata);
     } finally {
       setSending(false);
     }
@@ -250,7 +325,21 @@ export function StructuredResponse({
     if (!config.multiSelect) {
       setSelected([option]);
       if (option !== 'Other') {
-        await sendValue(option);
+        let metadata: Record<string, unknown> | null = null;
+        if (config.questionType === 'Q_AFFECTED_SCOPE') {
+          const normalizedOption = option.toLowerCase();
+          metadata = {
+            selection_type: 'affected_scope',
+            scope: normalizedOption.includes('all items')
+              ? 'all'
+              : normalizedOption.includes('only some')
+                ? 'partial'
+                : normalizedOption.includes('not sure')
+                  ? 'unsure'
+                  : 'other',
+          };
+        }
+        await sendValue(option, metadata);
       }
       return;
     }
@@ -267,12 +356,27 @@ export function StructuredResponse({
     if (chosen.length === 0) return;
 
     let prefix = 'Selected items';
-    if (intakeReason === 'partial_order') prefix = 'Missing items';
-    if (intakeReason === 'damaged_item') prefix = 'Damaged items';
+    if (intakeReason === 'partial_fulfillment') prefix = 'Missing items';
+    if (intakeReason === 'damaged_goods') prefix = 'Damaged items';
     if (intakeReason === 'wrong_item') prefix = 'Affected items';
-    if (disputeType === 'delivery' && intakeReason === 'late_or_missing_delivery') prefix = 'Items not received';
+    if (disputeType === 'delivery' && (intakeReason === 'delayed' || intakeReason === 'non_receipt')) prefix = 'Items not received';
 
-    await sendValue(`${prefix}: ${chosen.join(', ')}`);
+    const selectedOrderItems = chosen
+      .map((name) => optionToOrderItem.get(name))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    await sendValue(`${prefix}: ${chosen.join(', ')}`, {
+      selection_type: 'affected_items',
+      scope: 'partial',
+      affected_item_ids: selectedOrderItems.map((item) => item.item_id),
+      affected_item_names: selectedOrderItems.map((item) => item.item_name),
+      affected_items: selectedOrderItems.map((item) => ({
+        item_id: item.item_id,
+        item_name: item.item_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      })),
+    });
   };
 
   const submitOther = async () => {
@@ -330,4 +434,5 @@ export function StructuredResponse({
     </div>
   );
 }
+
 

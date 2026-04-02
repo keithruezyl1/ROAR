@@ -76,7 +76,7 @@ export function SearchFilterBar({
         </label>
 
         <label className="min-w-[180px]">
-          <div className="mb-1 text-[12px] font-medium text-text-muted">Type</div>
+          <div className="mb-1 text-[12px] font-medium text-text-muted">Issue type</div>
           <div className="relative">
             <select
               value={value.dispute_type}
@@ -89,8 +89,8 @@ export function SearchFilterBar({
               className="h-11 w-full appearance-none rounded-input border border-border-default bg-bg-elevated px-3 pr-10 text-[15px] text-text-primary"
             >
               <option value="">All types</option>
-              <option value="refund">Refund</option>
-              <option value="delivery">Delivery</option>
+              <option value="refund">Refund issues</option>
+              <option value="delivery">Delivery issues</option>
             </select>
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-text-secondary">
               <ChevronDownIcon />

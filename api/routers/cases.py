@@ -12,10 +12,19 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.middleware import get_current_user, get_current_user_optional, require_agent, require_approver, require_customer
+from api.auth.middleware import get_current_user, get_current_user_optional, require_agent, require_approver, require_customer, require_escalation
 from api.db.database import get_db
 from api.db.models import Case, ChatMessage, Policy, RefundRequest
 from api.services.cases import generate_reference_number, validate_status_transition
+from api.services.decision_matrix import (
+    ALLOWED_RESOLUTION_PREFERENCES,
+    allowed_preferences_for,
+    default_preference_for,
+    is_known_subtype,
+    normalize_dispute_subtype,
+    normalize_resolution_preference,
+    subtype_expected_type,
+)
 from api.services.n8n import trigger_workflow
 
 router = APIRouter(prefix="/cases", tags=["cases"])
@@ -26,6 +35,8 @@ bearer_optional = HTTPBearer(auto_error=False)
 class CaseCreateRequest(BaseModel):
     order_id: str = Field(min_length=1, max_length=50)
     dispute_type: str
+    dispute_subtype: str | None = None
+    resolution_preference: str | None = None
     customer_name: str = Field(min_length=2, max_length=100)
     customer_email: EmailStr = Field(max_length=200)
     intake_message: str = Field(min_length=10, max_length=1000)
@@ -59,6 +70,8 @@ def _case_to_dict(case: Case) -> dict[str, Any]:
         "reference_number": case.reference_number,
         "order_id": case.order_id,
         "dispute_type": case.dispute_type,
+        "dispute_subtype": case.dispute_subtype,
+        "resolution_preference": case.resolution_preference,
         "customer_name": case.customer_name,
         "customer_email": case.customer_email,
         "intake_message": case.intake_message,
@@ -88,6 +101,65 @@ async def create_case(
     if payload.dispute_type not in ("refund", "delivery"):
         raise HTTPException(status_code=422, detail="Invalid dispute_type")
 
+    canonical_subtype = normalize_dispute_subtype(payload.dispute_subtype)
+    if canonical_subtype is not None:
+        if not is_known_subtype(canonical_subtype):
+            raise HTTPException(status_code=422, detail="Invalid dispute_subtype")
+        expected_type = subtype_expected_type(canonical_subtype)
+        if expected_type != payload.dispute_type:
+            raise HTTPException(status_code=422, detail="dispute_subtype is incompatible with dispute_type")
+
+    normalized_preference = normalize_resolution_preference(payload.resolution_preference)
+    if normalized_preference is not None and normalized_preference not in ALLOWED_RESOLUTION_PREFERENCES:
+        raise HTTPException(status_code=422, detail="Invalid resolution_preference")
+
+    if canonical_subtype is None and normalized_preference is not None:
+        raise HTTPException(status_code=422, detail="resolution_preference requires dispute_subtype")
+
+    effective_preference = normalized_preference
+    if effective_preference is None and canonical_subtype is not None:
+        effective_preference = default_preference_for(payload.dispute_type, canonical_subtype)
+
+    if effective_preference is not None:
+        allowed_preferences = allowed_preferences_for(payload.dispute_type, canonical_subtype)
+        if effective_preference not in allowed_preferences:
+            raise HTTPException(
+                status_code=422,
+                detail=f"resolution_preference '{effective_preference}' is not allowed for dispute_subtype '{canonical_subtype}'",
+            )
+
+    current_user = None
+    if creds:
+        try:
+            current_user = await get_current_user(credentials=creds)
+        except HTTPException:
+            current_user = None
+
+    if current_user and current_user.get("role") == "customer":
+        if str(payload.customer_email).lower() != str(current_user.get("email") or "").lower():
+            raise HTTPException(status_code=403, detail="customer_email does not match authenticated customer")
+
+    order_q = text(
+        """
+        SELECT order_id, status, customer_email
+        FROM sim_orders
+        WHERE order_id = :order_id
+        LIMIT 1
+        """
+    )
+    order_row = (await db.execute(order_q, {"order_id": payload.order_id})).mappings().first()
+    if order_row is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    order_customer_email = str(order_row.get("customer_email") or "").strip().lower()
+    payload_customer_email = str(payload.customer_email).strip().lower()
+    if order_customer_email != payload_customer_email:
+        raise HTTPException(status_code=403, detail="Order does not belong to the provided customer")
+
+    order_status = str(order_row.get("status") or "").strip().lower()
+    if order_status in {"cancelled", "canceled"}:
+        raise HTTPException(status_code=409, detail="Order is cancelled and cannot be disputed.")
+
     dup_q = select(Case).where(and_(Case.order_id == payload.order_id, Case.status != "closed"))
     dup_res = await db.execute(dup_q)
     dup_case = dup_res.scalar_one_or_none()
@@ -98,19 +170,15 @@ async def create_case(
 
     # Determine customer_user_id from JWT if present
     customer_uid = None
-    if creds:
-        try:
-            from api.auth.jwt import verify_token
-            token_payload = verify_token(creds.credentials)
-            if token_payload.get("role") == "customer":
-                customer_uid = token_payload.get("sub")
-        except Exception:
-            pass
+    if current_user and current_user.get("role") == "customer":
+        customer_uid = current_user.get("sub")
 
     case = Case(
         reference_number=ref,
         order_id=payload.order_id,
         dispute_type=payload.dispute_type,
+        dispute_subtype=canonical_subtype,
+        resolution_preference=effective_preference,
         customer_name=payload.customer_name,
         customer_email=str(payload.customer_email),
         intake_message=payload.intake_message,
@@ -129,6 +197,8 @@ async def create_case(
             "case_id": str(case.id),
             "order_id": case.order_id,
             "dispute_type": case.dispute_type,
+            "dispute_subtype": case.dispute_subtype,
+            "resolution_preference": case.resolution_preference,
         },
     )
 
@@ -280,7 +350,18 @@ async def patch_case(
     # This ensures customers are notified immediately with a Refund Request ID, even if the workflow only
     # patches the case record and does not call /refund_requests.
     try:
-        if prev_status != "awaiting_approval" and case.status == "awaiting_approval" and case.dispute_type == "refund":
+        plan = case.resolution_plan or {}
+        resolution_type = None
+        if isinstance(plan, dict):
+            resolution_type = plan.get("resolution_type")
+        resolved_type = str(resolution_type or case.resolution_preference or "refund").strip().lower()
+
+        if (
+            prev_status != "awaiting_approval"
+            and case.status == "awaiting_approval"
+            and case.dispute_type == "refund"
+            and resolved_type == "refund"
+        ):
             existing_rr = await db.execute(
                 select(RefundRequest.id)
                 .where(RefundRequest.case_id == case.id)
@@ -288,7 +369,6 @@ async def patch_case(
                 .limit(1)
             )
             if existing_rr.scalar_one_or_none() is None:
-                plan = case.resolution_plan or {}
                 raw_amount = None
                 if isinstance(plan, dict):
                     raw_amount = plan.get("amount")
@@ -300,11 +380,7 @@ async def patch_case(
 
                 amount = float(raw_amount) if raw_amount is not None else 0.0
 
-                resolution_type = None
-                if isinstance(plan, dict):
-                    resolution_type = plan.get("resolution_type")
-                resolution_type = str(resolution_type or "refund")
-                reason = f"Workflow plan: {resolution_type}"
+                reason = f"Workflow plan: {resolved_type or 'refund'}"
 
                 rr = RefundRequest(
                     case_id=case.id,
@@ -363,6 +439,60 @@ async def approve_case(
     await trigger_workflow("/webhooks/approved", {"case_id": str(case.id)})
 
     return CaseApproveResponse(status=case.status, message="Approval recorded. Execution started.")
+
+
+@router.post("/{case_id}/claim")
+async def claim_case(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_escalation),
+):
+    result = await db.execute(select(Case).where(Case.id == case_id))
+    case = result.scalar_one_or_none()
+    if case is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    if case.status == "closed":
+        raise HTTPException(status_code=409, detail="Case is closed")
+
+    agent_sub = current_user.get("sub")
+    if not isinstance(agent_sub, str):
+        raise HTTPException(status_code=401, detail="Invalid token subject")
+
+    try:
+        agent_uuid = uuid.UUID(agent_sub)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Invalid user id in token") from exc
+
+    if case.assigned_to is not None and case.assigned_to != agent_uuid:
+        raise HTTPException(
+            status_code=409,
+            detail="This case is already claimed and handled by another agent.",
+        )
+
+    if case.status != "escalated_human_required" and case.assigned_to != agent_uuid:
+        raise HTTPException(status_code=409, detail="Case is not available for claim")
+
+    newly_claimed = case.assigned_to is None
+    case.assigned_to = agent_uuid
+    case.updated_at = datetime.now(timezone.utc)
+
+    if newly_claimed:
+        agent_name = str(current_user.get("full_name") or "Agent").strip() or "Agent"
+        db.add(
+            ChatMessage(
+                case_id=case.id,
+                sender_type="system",
+                sender_id=None,
+                content=f"Agent {agent_name} has joined the conversation",
+                metadata_=None,
+            )
+        )
+
+    await db.commit()
+    await db.refresh(case)
+
+    return _case_to_dict(case)
 
 
 @router.post("/{case_id}/reject")

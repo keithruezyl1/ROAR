@@ -36,6 +36,9 @@ async def get_my_orders(
 
     orders = []
     for o in orders_rows:
+        status = str(o["status"] or "").strip().lower()
+        blocked = status in {"cancelled", "canceled"}
+
         items_q = text("""
             SELECT item_id, item_name, quantity, unit_price
             FROM sim_order_items
@@ -47,6 +50,8 @@ async def get_my_orders(
         orders.append({
             "order_id": o["order_id"],
             "status": o["status"],
+            "disputable": not blocked,
+            "dispute_block_reason": "cancelled_order" if blocked else None,
             "total_amount": float(o["total_amount"]),
             "created_at": str(o["created_at"]),
             "fulfilled_at": str(o["fulfilled_at"]) if o["fulfilled_at"] else None,
@@ -80,6 +85,7 @@ async def get_my_cases(
                 "reference_number": c.reference_number,
                 "order_id": c.order_id,
                 "dispute_type": c.dispute_type,
+                "resolution_preference": c.resolution_preference,
                 "customer_name": c.customer_name,
                 "customer_email": c.customer_email,
                 "intake_message": c.intake_message,

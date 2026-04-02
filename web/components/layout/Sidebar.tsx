@@ -82,6 +82,7 @@ export function Sidebar({
     role === 'approver'
       ? [
           { href: '/approver', label: 'Dashboard', icon: DashboardIcon },
+          { href: '/approver/replacements', label: 'Replacements', icon: HistoryIcon },
           { href: '/approver/refunds', label: 'History', icon: HistoryIcon },
           { href: '/policies', label: 'Policies', icon: PoliciesIcon },
         ]

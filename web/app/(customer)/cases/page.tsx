@@ -12,13 +12,14 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { DarkModeToggle } from '@/components/shared/DarkModeToggle';
 import { Modal } from '@/components/shared/Modal';
 import { decodeToken, logout } from '@/lib/auth';
-import type { CaseStatus, DisputeType } from '@/types';
+import type { CaseStatus, DisputeType, ResolutionPreference } from '@/types';
 
 type CustomerCase = {
   id: string;
   reference_number: string;
   order_id: string;
   dispute_type: DisputeType;
+  resolution_preference: ResolutionPreference | null;
   status: CaseStatus;
   updated_at: string;
 };
@@ -54,9 +55,9 @@ function EmptyIllustration() {
   );
 }
 
-function ChevronDownIcon() {
+function ChevronDownIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" className={className ?? 'h-4 w-4'} aria-hidden>
       <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -67,6 +68,7 @@ export default function CustomerCasesPage() {
   const [loading, setLoading] = React.useState(true);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [logoutOpen, setLogoutOpen] = React.useState(false);
+  const [expandedCaseIds, setExpandedCaseIds] = React.useState<Set<string>>(new Set());
 
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -100,6 +102,18 @@ export default function CustomerCasesPage() {
 
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
+
+  const toggleCaseDetails = React.useCallback((caseId: string) => {
+    setExpandedCaseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(caseId)) {
+        next.delete(caseId);
+      } else {
+        next.add(caseId);
+      }
+      return next;
+    });
   }, []);
 
   return (
@@ -178,23 +192,71 @@ export default function CustomerCasesPage() {
           <div className="relative pl-8">
             <div className="absolute left-[15px] top-0 h-full w-px bg-border-default" />
             <div className="flex flex-col gap-6">
-              {cases.map((customerCase) => (
-                <div key={customerCase.id} className="relative">
-                  <div className={`absolute left-[-29px] top-8 h-4 w-4 rounded-pill ring-4 ring-bg-base ${DOT_CLASS_BY_STATUS[customerCase.status]}`} />
-                  <Link
-                    href={`/chat?caseId=${customerCase.id}`}
-                    className="block rounded-card border border-border-default bg-bg-surface p-5 transition duration-instant hover:border-border-focus hover:bg-primary-subtle"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <DisputeTypeBadge disputeType={customerCase.dispute_type} />
-                      <CaseStatusPill status={customerCase.status} />
+              {cases.map((customerCase) => {
+                const detailsOpen = expandedCaseIds.has(customerCase.id);
+                const typeTitle = customerCase.resolution_preference ? 'Requested resolution' : 'Issue type';
+                const typeValue = customerCase.resolution_preference ?? customerCase.dispute_type;
+
+                return (
+                  <div key={customerCase.id} className="relative">
+                    <div className={`absolute left-[-29px] top-8 h-4 w-4 rounded-pill ring-4 ring-bg-base ${DOT_CLASS_BY_STATUS[customerCase.status]}`} />
+
+                    <div className="rounded-card border border-border-default bg-bg-surface p-5 transition duration-instant hover:border-border-focus">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                              <DisputeTypeBadge disputeType={customerCase.dispute_type} />
+                              <CaseStatusPill status={customerCase.status} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <div className="font-mono text-[12px] text-text-secondary">{customerCase.reference_number}</div>
+                              <div className="text-[16px] font-medium text-text-primary">Order {customerCase.order_id}</div>
+                              <div className="text-[11px] text-text-muted">Last updated {formatUpdated(customerCase.updated_at)}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 md:flex-col md:items-end">
+                            <Link href={`/chat?caseId=${customerCase.id}`}>
+                              <Button size="sm">Open chat</Button>
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => toggleCaseDetails(customerCase.id)}
+                              className="inline-flex items-center gap-1 rounded-pill border border-border-default bg-bg-elevated px-2.5 py-1 text-[12px] font-medium text-text-secondary transition-colors hover:bg-bg-sunken"
+                              aria-expanded={detailsOpen}
+                            >
+                              Case details
+                              <ChevronDownIcon className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {detailsOpen ? (
+                          <div className="grid gap-2 border-t border-border-default pt-4 sm:grid-cols-2">
+                            <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                              <div className="text-[11px] text-text-muted">Case ID</div>
+                              <div className="mt-1 font-mono text-[12px] text-text-primary">{customerCase.id}</div>
+                            </div>
+                            <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                              <div className="text-[11px] text-text-muted">Reference</div>
+                              <div className="mt-1 font-mono text-[12px] text-text-primary">{customerCase.reference_number}</div>
+                            </div>
+                            <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                              <div className="text-[11px] text-text-muted">Order</div>
+                              <div className="mt-1 text-[13px] text-text-primary">{customerCase.order_id}</div>
+                            </div>
+                            <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                              <div className="text-[11px] text-text-muted">{typeTitle}</div>
+                              <div className="mt-1 text-[13px] capitalize text-text-primary">{typeValue}</div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="mt-4 font-mono text-[12px] text-text-secondary">{customerCase.reference_number}</div>
-                    <div className="mt-2 text-[15px] text-text-secondary">Order {customerCase.order_id}</div>
-                    <div className="mt-2 text-[11px] text-text-muted">Last updated {formatUpdated(customerCase.updated_at)}</div>
-                  </Link>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -222,4 +284,5 @@ export default function CustomerCasesPage() {
     </div>
   );
 }
+
 

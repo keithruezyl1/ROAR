@@ -44,8 +44,8 @@ call :http_ready "http://127.0.0.1:3000"
 if errorlevel 1 (
   echo [OK] Frontend is already down.
 ) else (
-  echo [INFO] Closing frontend window...
-  taskkill /FI "WINDOWTITLE eq ROAR Frontend" /T >nul 2>&1
+  echo [INFO] Stopping frontend (port 3000^)...
+  call :kill_port_tree 3000
   call :wait_for_http_down "http://127.0.0.1:3000" "Frontend"
 )
 goto :eof
@@ -61,8 +61,8 @@ call :http_ready "http://127.0.0.1:8000/docs"
 if errorlevel 1 (
   echo [OK] FastAPI is already down.
 ) else (
-  echo [INFO] Closing FastAPI window...
-  taskkill /FI "WINDOWTITLE eq ROAR API" /T >nul 2>&1
+  echo [INFO] Stopping FastAPI (port 8000^)...
+  call :kill_port_tree 8000
   call :wait_for_http_down "http://127.0.0.1:8000/docs" "FastAPI"
 )
 goto :eof
@@ -150,6 +150,11 @@ for /L %%I in (1,1,45) do (
   timeout /t 2 /nobreak >nul
 )
 echo [WARN] Timed out waiting for %WAIT_NAME% on port %WAIT_PORT% to stop.
+goto :eof
+
+:kill_port_tree
+set "KILL_PORT=%~1"
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %KILL_PORT% -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | Sort-Object -Unique | ForEach-Object { if ($_) { & taskkill.exe /PID $_ /T /F } }" >nul 2>&1
 goto :eof
 
 :http_ready

@@ -5,7 +5,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   awaiting_approval: { bg: 'bg-warning-bg', text: 'text-warning', label: 'Awaiting approval' },
   approved_executing: { bg: 'bg-primary-subtle', text: 'text-primary', label: 'Executing' },
   rejected_human_required: { bg: 'bg-danger-bg', text: 'text-danger', label: 'Rejected - human required' },
-  escalated_human_required: { bg: 'bg-warning-bg', text: 'text-warning', label: 'Escalated' },
+  escalated_human_required: { bg: 'bg-info-bg', text: 'text-info', label: 'Escalated' },
   resolved: { bg: 'bg-success-bg', text: 'text-success', label: 'Resolved' },
   closed: { bg: 'bg-bg-sunken', text: 'text-text-muted', label: 'Closed' },
 };

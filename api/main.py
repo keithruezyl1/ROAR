@@ -9,7 +9,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import auth, cases, customers, internal, messages, policies, reports, resolution_records, webhooks
+from api.routers import (
+    auth,
+    cases,
+    customers,
+    internal,
+    messages,
+    orders,
+    policies,
+    replacement_requests,
+    reports,
+    resolution_records,
+    return_requests,
+    webhooks,
+)
 from api.services import timeout_service
 
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +78,10 @@ app.include_router(customers.router)
 app.include_router(messages.router)
 app.include_router(reports.router)
 app.include_router(resolution_records.router)
+app.include_router(return_requests.router)
+app.include_router(replacement_requests.router)
 app.include_router(webhooks.router)
 app.include_router(policies.router)
 app.include_router(internal.router)
 app.include_router(internal.debug_router)
+app.include_router(orders.router)

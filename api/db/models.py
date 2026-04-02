@@ -32,6 +32,8 @@ class Case(Base):
     reference_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     order_id: Mapped[str] = mapped_column(String(50), nullable=False)
     dispute_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    dispute_subtype: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolution_preference: Mapped[str | None] = mapped_column(String(20), nullable=True)
     customer_name: Mapped[str] = mapped_column(String(100), nullable=False)
     customer_email: Mapped[str] = mapped_column(String(200), nullable=False)
     intake_message: Mapped[str] = mapped_column(Text, nullable=False)
@@ -101,6 +103,25 @@ class ReturnRequest(Base):
     return_reason: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ReplacementRequest(Base):
+    __tablename__ = "replacement_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    case_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("cases.id"), nullable=False)
+    order_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    replacement_items: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    eligible_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class CaseReport(Base):

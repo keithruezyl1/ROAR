@@ -9,6 +9,7 @@ set "STARTED_POSTGRES=0"
 set "STARTED_N8N=0"
 set "STARTED_BACKEND=0"
 set "STARTED_FRONTEND=0"
+set "BACKEND_UVICORN_CMD=python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000"
 
 echo ==========================================
 echo ROAR bootup starting...
@@ -17,8 +18,7 @@ echo ==========================================
 
 call :start_postgres
 call :start_n8n
-call :start_backend
-call :start_frontend
+call :start_dev_servers
 call :write_state
 
 echo.
@@ -34,7 +34,7 @@ goto :eof
 
 :start_postgres
 echo.
-echo [1/4] Checking Postgres container...
+echo [1/3] Checking Postgres container...
 call :is_container_running "roar-postgres"
 if not errorlevel 1 (
   echo [OK] Postgres is already running.
@@ -61,7 +61,7 @@ goto :eof
 
 :start_n8n
 echo.
-echo [2/4] Checking n8n...
+echo [2/3] Checking n8n...
 call :http_ready "http://127.0.0.1:5678"
 if not errorlevel 1 (
   echo [OK] n8n is already responding on port 5678.
@@ -98,35 +98,56 @@ set "STARTED_N8N=1"
 call :wait_for_http "http://127.0.0.1:5678" "n8n"
 goto :eof
 
-:start_backend
+:start_dev_servers
 echo.
-echo [3/4] Checking FastAPI backend...
+echo [3/3] Checking FastAPI backend and frontend dev server...
+set "NEED_BACKEND=0"
+set "NEED_FRONTEND=0"
+
 call :http_ready "http://127.0.0.1:8000/docs"
-if not errorlevel 1 (
-  echo [OK] FastAPI is already responding on port 8000.
-  goto :eof
-)
+if errorlevel 1 set "NEED_BACKEND=1"
 
-echo [INFO] Launching FastAPI in a new window...
-REM Bind to 0.0.0.0 so n8n (running in Docker) can reach FastAPI via the host LAN IP.
-start "ROAR API" cmd /k "cd /d ""%REPO_DIR%"" && python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000"
-set "STARTED_BACKEND=1"
-call :wait_for_http "http://127.0.0.1:8000/docs" "FastAPI"
-goto :eof
-
-:start_frontend
-echo.
-echo [4/4] Checking frontend dev server...
 call :http_ready "http://127.0.0.1:3000"
+if errorlevel 1 set "NEED_FRONTEND=1"
+
+if "%NEED_BACKEND%"=="0" echo [OK] FastAPI is already responding on port 8000.
+if "%NEED_FRONTEND%"=="0" echo [OK] Frontend is already responding on port 3000.
+
+if "%NEED_BACKEND%%NEED_FRONTEND%"=="00" goto :eof
+
+set "WT_PATH="
+where wt >nul 2>&1
 if not errorlevel 1 (
-  echo [OK] Frontend is already responding on port 3000.
-  goto :eof
+  set "WT_PATH=wt"
+) else if exist "%LocalAppData%\Microsoft\WindowsApps\wt.exe" (
+  set "WT_PATH=%LocalAppData%\Microsoft\WindowsApps\wt.exe"
 )
 
-echo [INFO] Launching frontend in a new window...
-start "ROAR Frontend" cmd /k "cd /d ""%REPO_DIR%\web"" && npm run dev"
-set "STARTED_FRONTEND=1"
-call :wait_for_http "http://127.0.0.1:3000" "Frontend"
+if defined WT_PATH (
+  echo [INFO] Launching dev servers in Windows Terminal (PowerShell tabs^)...
+  REM Bind backend to 0.0.0.0 so n8n (Docker) can reach FastAPI via the host LAN IP.
+  if "%NEED_BACKEND%%NEED_FRONTEND%"=="11" (
+    "%WT_PATH%" new-tab --title "ROAR API" powershell.exe -NoExit -NoProfile -Command "Set-Location -LiteralPath '%REPO_DIR%'; %BACKEND_UVICORN_CMD%" ; new-tab --title "ROAR Frontend" powershell.exe -NoExit -NoProfile -Command "Set-Location -LiteralPath '%REPO_DIR%\web'; npm run dev"
+  ) else if "%NEED_BACKEND%"=="1" (
+    "%WT_PATH%" new-tab --title "ROAR API" powershell.exe -NoExit -NoProfile -Command "Set-Location -LiteralPath '%REPO_DIR%'; %BACKEND_UVICORN_CMD%"
+  ) else (
+    "%WT_PATH%" new-tab --title "ROAR Frontend" powershell.exe -NoExit -NoProfile -Command "Set-Location -LiteralPath '%REPO_DIR%\web'; npm run dev"
+  )
+) else (
+  echo [WARN] Windows Terminal ^(wt^) not found; using separate console windows instead.
+  if "%NEED_BACKEND%"=="1" (
+    start "ROAR API" cmd /k "cd /d ""%REPO_DIR%"" && %BACKEND_UVICORN_CMD%"
+  )
+  if "%NEED_FRONTEND%"=="1" (
+    start "ROAR Frontend" cmd /k "cd /d ""%REPO_DIR%\web"" && npm run dev"
+  )
+)
+
+if "%NEED_BACKEND%"=="1" set "STARTED_BACKEND=1"
+if "%NEED_FRONTEND%"=="1" set "STARTED_FRONTEND=1"
+
+if "%NEED_BACKEND%"=="1" call :wait_for_http "http://127.0.0.1:8000/docs" "FastAPI"
+if "%NEED_FRONTEND%"=="1" call :wait_for_http "http://127.0.0.1:3000" "Frontend"
 goto :eof
 
 :write_state
@@ -136,6 +157,7 @@ goto :eof
   echo set "STARTED_N8N=%STARTED_N8N%"
   echo set "STARTED_BACKEND=%STARTED_BACKEND%"
   echo set "STARTED_FRONTEND=%STARTED_FRONTEND%"
+  echo set "BACKEND_UVICORN_CMD=%BACKEND_UVICORN_CMD%"
 ) > "%STATE_FILE%"
 echo [INFO] Wrote startup state to "%STATE_FILE%".
 goto :eof

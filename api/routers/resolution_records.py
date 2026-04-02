@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.middleware import require_agent, require_escalation, require_approver
 from api.db.database import get_db
-from api.db.models import Case, ChatMessage, Policy, RefundRequest, ReturnRequest
+from api.db.models import Case, ChatMessage, Policy, RefundRequest
 from api.services.escalation_messages import TEMPLATES, post_message
 
 router = APIRouter(tags=["resolution-records"])
@@ -66,21 +66,8 @@ class RefundRequestCreate(BaseModel):
     status: str = "pending"
 
 
-class ReturnRequestCreate(BaseModel):
-    case_id: str
-    order_id: str = Field(min_length=1, max_length=50)
-    item_ids: list[str] = Field(default_factory=list)
-    return_reason: str = Field(min_length=1)
-    status: str = "pending"
-
-
 class RefundRequestListResponse(BaseModel):
     refund_requests: list[dict]
-
-
-class ReturnRequestListResponse(BaseModel):
-    return_requests: list[dict]
-
 
 class DenyRefundRequest(BaseModel):
     reason: str = Field(min_length=10)
@@ -89,11 +76,6 @@ class DenyRefundRequest(BaseModel):
 
 class DuplicateRefundResponse(BaseModel):
     status: str = "ok"
-
-
-class ReturnStatusUpdateRequest(BaseModel):
-    status: str
-    reason: str | None = None
 
 
 class RefundApprovalQueueItem(BaseModel):
@@ -116,7 +98,7 @@ class RefundApproveResponse(BaseModel):
     status: str = "processed"
 
 
-def _serialize_record(record: RefundRequest | ReturnRequest) -> dict:
+def _serialize_record(record: RefundRequest) -> dict:
     return {
         "id": str(record.id),
         "case_id": str(record.case_id),
@@ -246,33 +228,6 @@ async def list_refund_requests(
     }
 
 
-@router.get("/cases/{case_id}/return_requests", response_model=ReturnRequestListResponse)
-async def list_return_requests(
-    case_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_agent),
-):
-    case = await _get_case(case_id, db)
-    agent_sub = current_user.get("sub")
-    if current_user.get("role") == "escalation" and case.assigned_to is not None and agent_sub:
-        # Escalation agents can only view return records for cases they currently own.
-        if case.assigned_to != uuid.UUID(agent_sub):
-            raise HTTPException(status_code=403, detail="This case is handled by another agent")
-
-    res = await db.execute(select(ReturnRequest).where(ReturnRequest.case_id == case.id).order_by(ReturnRequest.created_at.desc()))
-    records = res.scalars().all()
-    return {
-        "return_requests": [
-            {
-                **_serialize_record(r),
-                "item_ids": r.item_ids,
-                "return_reason": r.return_reason,
-            }
-            for r in records
-        ]
-    }
-
-
 @router.post("/refund_requests", status_code=status.HTTP_201_CREATED)
 async def create_refund_request(
     payload: RefundRequestCreate,
@@ -387,40 +342,6 @@ async def create_refund_request(
     }
 
 
-@router.post("/return_requests", status_code=status.HTTP_201_CREATED)
-async def create_return_request(
-    payload: ReturnRequestCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_agent),
-):
-    _ = current_user
-    case = await _get_case(payload.case_id, db)
-
-    if payload.status not in ("pending", "approved", "rejected"):
-        raise HTTPException(status_code=422, detail="Invalid return request status")
-    if case.order_id != payload.order_id:
-        raise HTTPException(status_code=422, detail="order_id does not match case")
-
-    return_request = ReturnRequest(
-        case_id=case.id,
-        order_id=payload.order_id,
-        item_ids=payload.item_ids,
-        return_reason=payload.return_reason,
-        status=payload.status,
-    )
-    db.add(return_request)
-    await db.commit()
-    await db.refresh(return_request)
-
-    await post_message(db, case.id, TEMPLATES["return_created"], sender_type="system")
-
-    return {
-        **_serialize_record(return_request),
-        "item_ids": return_request.item_ids,
-        "return_reason": return_request.return_reason,
-    }
-
-
 @router.post("/cases/{case_id}/deny-refund")
 async def deny_refund(
     case_id: str,
@@ -468,54 +389,3 @@ async def mark_duplicate_refund(
     return {"status": "ok"}
 
 
-@router.patch("/return_requests/{return_request_id}")
-async def update_return_request_status(
-    return_request_id: str,
-    payload: ReturnStatusUpdateRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_escalation),
-):
-    try:
-        return_uuid = uuid.UUID(return_request_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Invalid return_request_id") from exc
-
-    if payload.status not in ("approved", "rejected"):
-        raise HTTPException(status_code=422, detail="Invalid return request status")
-
-    if payload.status == "rejected" and (payload.reason is None or payload.reason.strip() == ""):
-        raise HTTPException(status_code=422, detail="Rejection reason is required")
-
-    res = await db.execute(select(ReturnRequest).where(ReturnRequest.id == return_uuid))
-    return_request = res.scalar_one_or_none()
-    if return_request is None:
-        raise HTTPException(status_code=404, detail="Return request not found")
-
-    case = await _get_case(str(return_request.case_id), db)
-    agent_uuid = uuid.UUID(current_user["sub"])
-    if case.assigned_to is None or case.assigned_to != agent_uuid:
-        raise HTTPException(status_code=403, detail="This case is not assigned to you")
-
-    if return_request.status != "pending":
-        raise HTTPException(status_code=409, detail="Return request is not in pending status")
-
-    return_request.status = payload.status
-    await db.commit()
-    await db.refresh(return_request)
-
-    # Return approved/rejected messages are operational/status notifications.
-    if payload.status == "approved":
-        await post_message(db, case.id, TEMPLATES["return_approved"], sender_type="system")
-    else:
-        await post_message(
-            db,
-            case.id,
-            TEMPLATES["return_rejected"].format(reason=payload.reason or ""),
-            sender_type="system",
-        )
-
-    return {
-        **_serialize_record(return_request),
-        "item_ids": return_request.item_ids,
-        "return_reason": return_request.return_reason,
-    }
