@@ -13,8 +13,9 @@ import { ParticipantBanner } from './ParticipantBanner';
 import { TypingIndicator } from './TypingIndicator';
 import { StructuredResponse, getStructuredConfig } from './StructuredResponse';
 import { ProofUploadPanel } from './ProofUploadPanel';
+import { CustomerReportModal } from './CustomerReportModal';
 import { Button } from '@/components/shared/Button';
-import type { CaseProofUpload, CaseStatus, DisputeType, IntakeReason, InvalidReasonCode, OrderDetails, ProofAnalysisStatus, ResolutionPreference } from '@/types';
+import type { CaseProofUpload, CaseStatus, DisputeType, IntakeReason, InvalidReasonCode, OrderDetails, ProofAnalysisStatus, ResolutionPreference, CaseReport } from '@/types';
 
 type Message = {
   id: string;
@@ -139,6 +140,10 @@ export function ChatWindow({
   const [selectedProofFiles, setSelectedProofFiles] = React.useState<File[]>([]);
   const [proofActionError, setProofActionError] = React.useState<string | null>(null);
   const [proofActionLoading, setProofActionLoading] = React.useState(false);
+  const [report, setReport] = React.useState<CaseReport | null>(null);
+  const [reportOpen, setReportOpen] = React.useState(false);
+  const [reportLoading, setReportLoading] = React.useState(false);
+  const reportHasAutoOpened = React.useRef(false);
 
   const scrollerRef = React.useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = React.useRef(0);
@@ -185,6 +190,39 @@ export function ChatWindow({
     if (mode !== 'customer') return;
     customerApi.getOrderDetails(caseId).then(setOrderDetails).catch(() => setOrderDetails(null));
   }, [caseId, mode]);
+
+  React.useEffect(() => {
+    if (caseStatus !== 'closed' || mode !== 'customer' || report) return;
+
+    let cancelled = false;
+    let timer: number | null = null;
+    let attempts = 0;
+
+    const pollReport = async () => {
+      try {
+        const data = await customerApi.getReport(caseId);
+        if (!cancelled && data) {
+          setReport(data);
+          if (!reportHasAutoOpened.current) {
+            setReportOpen(true);
+            reportHasAutoOpened.current = true;
+          }
+        }
+      } catch (err) {
+        if (!cancelled && attempts < 20) {
+          attempts++;
+          timer = window.setTimeout(() => void pollReport(), 3000);
+        }
+      }
+    };
+
+    void pollReport();
+
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [caseId, caseStatus, mode, report]);
 
   React.useEffect(() => {
     const onFocus = () => setFocused(true);
@@ -541,6 +579,25 @@ export function ChatWindow({
     setAtBottom(true);
   };
 
+  const handleViewReport = async () => {
+    if (report) {
+      setReportOpen(true);
+      return;
+    }
+    setReportLoading(true);
+    try {
+      const data = await customerApi.getReport(caseId);
+      if (data) {
+        setReport(data);
+        setReportOpen(true);
+      }
+    } catch (err) {
+      // Intentionally ignore missing report so the user can just try again, or maybe use a toast later
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   return (
     <div className="relative flex h-full flex-col overflow-hidden rounded-card border border-border-default bg-bg-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
       <ParticipantBanner
@@ -654,6 +711,9 @@ export function ChatWindow({
             Your dispute is no longer accepting new messages. You can review history or start a new dispute.
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="primary" size="sm" onClick={handleViewReport} loading={reportLoading}>
+              View summary report
+            </Button>
             {onGoToCases ? (
               <Button variant="secondary" size="sm" onClick={onGoToCases}>
                 Go to cases
@@ -710,6 +770,14 @@ export function ChatWindow({
             {unseenCount} new {unseenCount === 1 ? 'message' : 'messages'}
           </button>
         </div>
+      ) : null}
+      
+      {report ? (
+        <CustomerReportModal
+          report={report}
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+        />
       ) : null}
     </div>
   );

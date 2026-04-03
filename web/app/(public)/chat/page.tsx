@@ -23,6 +23,14 @@ function ChevronDownIcon({ className }: { className?: string }) {
   );
 }
 
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className ?? 'h-4 w-4'} aria-hidden>
+      <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -207,9 +215,9 @@ function ChatPageContent() {
               <button
                 type="button"
                 onClick={() => router.push('/cases')}
-                className="mb-3 inline-flex items-center text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+                className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
               >
-                Go back to cases
+                <ChevronLeftIcon /> Go back to cases
               </button>
               <IntakeForm onCreated={handleCreated} />
             </div>

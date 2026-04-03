@@ -1,4 +1,4 @@
-﻿const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -59,4 +59,5 @@ export const customerApi = {
   getProofUrl: (caseId: string, proofId: string) => `${API_BASE}/cases/${caseId}/proof-uploads/${proofId}`,
   deleteProof: (caseId: string, proofId: string) => api.delete<void>(`/cases/${caseId}/proof-uploads/${proofId}`),
   appealCase: (caseId: string) => api.post(`/cases/${caseId}/appeal`),
+  getReport: (caseId: string) => api.get<import('@/types').CaseReport>(`/cases/${caseId}/report`),
 };

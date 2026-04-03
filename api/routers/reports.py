@@ -1,4 +1,4 @@
-﻿"""Case reports."""
+"""Case reports."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from api.auth.middleware import require_agent
+from api.auth.middleware import get_current_user
 from api.config import settings
 from api.db.database import get_db
 from api.db.models import Case, CaseReport
@@ -41,8 +41,22 @@ class CaseReportUpsert(BaseModel):
 async def get_report(
     case_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_agent),
+    current_user: dict = Depends(get_current_user),
 ):
+    if current_user.get("role") == "customer":
+        case_res = await db.execute(select(Case).where(Case.id == case_id))
+        case = case_res.scalar_one_or_none()
+        if case is None:
+            raise HTTPException(status_code=403, detail="Not authorized to view this report")
+        
+        case_email = str(case.customer_email).strip().lower()
+        user_email = str(current_user.get("email") or "").strip().lower()
+        
+        if case_email != user_email:
+            raise HTTPException(status_code=403, detail="Not authorized to view this report")
+    elif current_user.get("role") not in ("approver", "escalation"):
+        raise HTTPException(status_code=403, detail="Not authorized to view reports")
+
     res = await db.execute(select(CaseReport).where(CaseReport.case_id == case_id))
     report = res.scalar_one_or_none()
     if report is None:
