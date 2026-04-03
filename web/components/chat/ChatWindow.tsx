@@ -69,6 +69,21 @@ function isItemSelectionPrompt(text: string) {
   );
 }
 
+function getProofPromptForSubtype(subtype: IntakeReason | null | undefined): string {
+  switch (subtype) {
+    case 'not_as_described':
+      return 'Hello, I am RAI. To further assist you, please upload photos showing how the order is not as described.';
+    case 'damaged_goods':
+      return 'Hello, I am RAI. To further assist you, please upload photos showing the damage to the item or packaging.';
+    case 'wrong_item':
+      return 'Hello, I am RAI. To further assist you, please upload photos showing the wrong item you received.';
+    case 'partial_fulfillment':
+      return 'Hello, I am RAI. To further assist you, please upload photos showing the missing items or partial delivery.';
+    default:
+      return 'Hello, I am RAI. To further assist you, please upload proof below so I can continue reviewing your case.';
+  }
+}
+
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
@@ -278,6 +293,61 @@ export function ChatWindow({
   const isClosed = caseStatus === 'closed';
   const awaitingProof = caseStatus === 'awaiting_customer_proof';
   const awaitingCustomerDecision = caseStatus === 'awaiting_customer_decision';
+  const hasProofRequestMessage = messages.some((message) => {
+    if (message.sender_type !== 'ai') return false;
+    const metadata = message.metadata;
+    if (!metadata || typeof metadata !== 'object') return false;
+    return (metadata as Record<string, unknown>).role === 'proof_request';
+  });
+  const hasProofUploadMessage = messages.some((message) => {
+    if (message.sender_type !== 'customer') return false;
+    const metadata = message.metadata;
+    if (!metadata || typeof metadata !== 'object') return false;
+    const record = metadata as Record<string, unknown>;
+    return (
+      record.action === 'proof_uploaded' ||
+      record.role === 'proof_upload' ||
+      Array.isArray(record.attachments)
+    );
+  });
+  const displayedMessages = React.useMemo(() => {
+    const shouldKeepSyntheticProofPrompt =
+      mode === 'customer' &&
+      !hasProofRequestMessage &&
+      (awaitingProof || hasProofUploadMessage);
+
+    if (!shouldKeepSyntheticProofPrompt) {
+      return messages;
+    }
+
+    const earliestMessageTime = messages
+      .map((message) => Date.parse(message.created_at))
+      .filter((value) => Number.isFinite(value))
+      .reduce<number | null>((earliest, value) => {
+        if (earliest == null) return value;
+        return Math.min(earliest, value);
+      }, null);
+
+    const syntheticProofPrompt: Message = {
+      id: `local:proof-prompt:${caseId}`,
+      sender_type: 'ai',
+      content: getProofPromptForSubtype(intakeReason ?? null),
+      created_at:
+        earliestMessageTime != null
+          ? new Date(earliestMessageTime - 1000).toISOString()
+          : new Date().toISOString(),
+      metadata: {
+        role: 'proof_request',
+        stage: 'frontend_waiting_for_proof',
+        synthetic: true,
+        dispute_subtype: intakeReason ?? null,
+      },
+      local_only: true,
+      local_status: null,
+    };
+
+    return sortMessages([...messages, syntheticProofPrompt]);
+  }, [awaitingProof, caseId, hasProofRequestMessage, hasProofUploadMessage, intakeReason, messages, mode]);
 
   const awaitingAiReply =
     mode === 'customer' &&
@@ -480,8 +550,9 @@ export function ChatWindow({
       />
 
       <div ref={scrollerRef} className="roar-scroll flex-1 overflow-y-auto px-4 py-3" aria-live="polite">
-        <div className={clsx('sticky top-0 z-20 mb-3 rounded-btn bg-bg-base/95 px-3 py-2 backdrop-blur transition-all duration-fast', contextCondensed ? 'shadow-[0_4px_20px_rgba(0,0,0,0.08)]' : '')}>
-          <div className="rounded-btn border border-border-default bg-bg-elevated">
+        <div className={clsx('sticky top-0 z-30 mb-3 rounded-btn bg-bg-base/95 px-3 py-2 backdrop-blur transition-all duration-fast', contextCondensed ? 'shadow-[0_4px_20px_rgba(0,0,0,0.08)]' : '')}>
+          <div className="relative">
+            <div className="rounded-btn border border-border-default bg-bg-elevated">
             <button
               type="button"
               onClick={() => setDetailsOpen((value) => !value)}
@@ -490,77 +561,34 @@ export function ChatWindow({
               <span>Case details</span>
               <ChevronIcon open={detailsOpen} />
             </button>
+            </div>
 
             {detailsOpen ? (
-              <div className="grid gap-2 border-t border-border-default px-3 py-3 sm:grid-cols-2">
-                <div className="rounded-btn bg-bg-sunken px-3 py-2">
-                  <div className="text-[11px] text-text-muted">Order</div>
-                  <div className="mt-1 text-[13px] font-medium text-text-primary">{orderLabel ?? '-'}</div>
-                </div>
-                <div className="rounded-btn bg-bg-sunken px-3 py-2">
-                  <div className="text-[11px] text-text-muted">Issue</div>
-                  <div className="mt-1 text-[13px] font-medium text-text-primary">{intakeLabel ?? '-'}</div>
-                </div>
-                <div className="rounded-btn bg-bg-sunken px-3 py-2">
-                  <div className="text-[11px] text-text-muted">{resolutionLabelTitle}</div>
-                  <div className="mt-1 text-[13px] font-medium text-text-primary">{resolutionLabel ?? '-'}</div>
-                </div>
-                <div className="rounded-btn bg-bg-sunken px-3 py-2">
-                  <div className="text-[11px] text-text-muted">Order items</div>
-                  <div className="mt-1 text-[13px] text-text-primary">{orderItemsLabel ?? '-'}</div>
+              <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-btn border border-border-default bg-bg-elevated p-3 shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                    <div className="text-[11px] text-text-muted">Order</div>
+                    <div className="mt-1 text-[13px] font-medium text-text-primary">{orderLabel ?? '-'}</div>
+                  </div>
+                  <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                    <div className="text-[11px] text-text-muted">Issue</div>
+                    <div className="mt-1 text-[13px] font-medium text-text-primary">{intakeLabel ?? '-'}</div>
+                  </div>
+                  <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                    <div className="text-[11px] text-text-muted">{resolutionLabelTitle}</div>
+                    <div className="mt-1 text-[13px] font-medium text-text-primary">{resolutionLabel ?? '-'}</div>
+                  </div>
+                  <div className="rounded-btn bg-bg-sunken px-3 py-2">
+                    <div className="text-[11px] text-text-muted">Order items</div>
+                    <div className="mt-1 text-[13px] text-text-primary">{orderItemsLabel ?? '-'}</div>
+                  </div>
                 </div>
               </div>
             ) : null}
           </div>
         </div>
 
-        {mode === 'customer' && awaitingProof ? (
-          <div className="mb-4">
-            <ProofUploadPanel
-              selectedFiles={selectedProofFiles}
-              uploads={proofUploads}
-              uploading={proofActionLoading}
-              error={proofActionError}
-              onSelect={(files) => {
-                setProofActionError(null);
-                setSelectedProofFiles((current) => [...current, ...files].slice(0, BUSINESS_RULES.MAX_PROOF_UPLOADS - proofUploads.length));
-              }}
-              onRemoveSelected={(index) => {
-                setSelectedProofFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
-              }}
-              onDeleteExisting={(proofId) => deleteProof(proofId)}
-              onUpload={uploadProofs}
-              title="Proof required to continue"
-              description={
-                proofAnalysisStatus === 'failed'
-                  ? 'Proof analysis failed previously. Uploading again will retry analysis.'
-                  : 'Upload one or two images showing the issue so triage can continue.'
-              }
-            />
-          </div>
-        ) : null}
-
-        {mode === 'customer' && awaitingCustomerDecision ? (
-          <div className="mb-4 rounded-card border border-warning bg-warning-bg p-4">
-            <div className="text-[14px] font-semibold text-warning">Decision needed</div>
-            <div className="mt-2 text-[13px] text-text-secondary">
-              {invalidReasonMessage ?? 'This case cannot continue automatically under current policy.'}
-            </div>
-            {proofActionError ? <div className="mt-2 text-[12px] text-danger">{proofActionError}</div> : null}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button variant="danger" size="sm" onClick={() => void appealCase()} disabled={proofActionLoading}>
-                Appeal to human
-              </Button>
-              {onCloseCase ? (
-                <Button variant="ghost" size="sm" onClick={onCloseCase} disabled={proofActionLoading}>
-                  Close case
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {messages.map((message) => (
+        {displayedMessages.map((message, index) => (
           <React.Fragment key={message.id}>
             <ChatBubble
               caseId={caseId}
@@ -581,6 +609,31 @@ export function ChatWindow({
                 onSend={onSend}
                 multiSelect={Boolean(structuredConfig?.multiSelect)}
               />
+            ) : null}
+            {mode === 'customer' && awaitingProof && index === 0 ? (
+              <div className="mb-4 ml-10 mt-2 max-w-[calc(100%-40px)]">
+                <ProofUploadPanel
+                  selectedFiles={selectedProofFiles}
+                  uploads={proofUploads}
+                  uploading={proofActionLoading}
+                  error={proofActionError}
+                  onSelect={(files) => {
+                    setProofActionError(null);
+                    setSelectedProofFiles((current) => [...current, ...files].slice(0, BUSINESS_RULES.MAX_PROOF_UPLOADS - proofUploads.length));
+                  }}
+                  onRemoveSelected={(index) => {
+                    setSelectedProofFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+                  }}
+                  onDeleteExisting={(proofId) => deleteProof(proofId)}
+                  onUpload={uploadProofs}
+                  title="Proof required to continue"
+                  description={
+                    proofAnalysisStatus === 'failed'
+                      ? 'Proof analysis failed previously. Uploading again will retry analysis.'
+                      : 'Upload one or two images showing the issue so triage can continue.'
+                  }
+                />
+              </div>
             ) : null}
           </React.Fragment>
         ))}
@@ -609,6 +662,28 @@ export function ChatWindow({
             {onStartNewDispute ? (
               <Button variant="ghost" size="sm" onClick={onStartNewDispute}>
                 Start new dispute
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {mode === 'customer' && awaitingCustomerDecision ? (
+        <div className="mx-4 mb-3 rounded-card border border-warning bg-warning-bg p-4">
+          <div className="text-[14px] font-semibold text-warning">Decision needed</div>
+          <div className="mt-2 text-[13px] text-text-secondary">
+            {invalidReasonMessage
+              ? `${invalidReasonMessage} Would you like to appeal this decision to a human support specialist?`
+              : 'This case cannot continue automatically under current policy. Would you like to appeal this decision to a human support specialist?'}
+          </div>
+          {proofActionError ? <div className="mt-2 text-[12px] text-danger">{proofActionError}</div> : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="danger" size="sm" onClick={() => void appealCase()} disabled={proofActionLoading}>
+              Appeal to human
+            </Button>
+            {onCloseCase ? (
+              <Button variant="secondary" size="sm" onClick={onCloseCase} disabled={proofActionLoading}>
+                Close case
               </Button>
             ) : null}
           </div>

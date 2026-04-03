@@ -55,8 +55,9 @@ export function ChatInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={disabled}
+          rows={1}
           placeholder={placeholder ?? 'Type a message...'}
-          className="min-h-11 max-h-36 flex-1 resize-y rounded-input border border-border-default bg-bg-sunken px-3 py-2 text-[15px] text-text-primary placeholder:text-text-muted focus:border-2 focus:border-border-focus focus:bg-bg-elevated focus:outline-none disabled:cursor-not-allowed disabled:opacity-55"
+          className="h-11 min-h-11 max-h-36 flex-1 resize-none rounded-input border border-border-default bg-bg-sunken px-3 py-2 text-[15px] leading-[22px] text-text-primary placeholder:text-text-muted focus:border-2 focus:border-border-focus focus:bg-bg-elevated focus:outline-none disabled:cursor-not-allowed disabled:opacity-55"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();

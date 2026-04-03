@@ -148,7 +148,6 @@ const ISSUE_DETAIL_OPTIONS: Partial<Record<IntakeReason, string[]>> = {
 const AFFECTED_SCOPE_OPTIONS: string[] = [
   'All items are affected',
   'Only some items are affected',
-  'I am not sure yet',
   'Other',
 ];
 
@@ -387,7 +386,10 @@ export function StructuredResponse({
   return (
     <div className="my-3 flex flex-col items-start gap-3">
       <div className="flex flex-wrap gap-2">
-        {config.options.map((option) => {
+        {(config.questionType === 'Q_ITEM_SELECTION'
+          ? config.options.filter((option) => option !== 'Other')
+          : config.options
+        ).map((option) => {
           const isSelected = selected.includes(option);
           return (
             <button

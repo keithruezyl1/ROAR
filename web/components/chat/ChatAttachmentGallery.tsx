@@ -13,9 +13,11 @@ function getToken() {
 export function ChatAttachmentGallery({
   caseId,
   attachments,
+  alignRight = false,
 }: {
   caseId: string;
   attachments: ProofAttachment[];
+  alignRight?: boolean;
 }) {
   const [previews, setPreviews] = React.useState<Record<string, string>>({});
 
@@ -63,7 +65,7 @@ export function ChatAttachmentGallery({
   if (attachments.length === 0) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
+    <div className={`mt-3 flex flex-wrap gap-2 ${alignRight ? 'justify-end' : 'justify-start'}`}>
       {attachments.map((attachment) => {
         const preview = previews[attachment.proof_upload_id];
         return (

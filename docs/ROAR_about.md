@@ -1,6 +1,13 @@
 # ROAR Engine
 ### Retail Operations and Resolution Engine
 
+**Changelog**
+
+  **Version**   **Date**     **Change**                                                                    **Section(s)**
+  v1.0          March 2026   Initial release                                                               All
+
+  v1.1          April 2026   Added Changelog header and version tracking                                   All
+
 ---
 
 ## What is ROAR?

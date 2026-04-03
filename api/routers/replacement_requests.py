@@ -84,6 +84,16 @@ class ReplacementRequestListResponse(BaseModel):
     replacement_requests: list[dict[str, Any]]
 
 
+def _enforce_escalation_assignment(case: Case, current_user: dict) -> None:
+    if current_user.get("role") != "escalation":
+        return
+    agent_sub = current_user.get("sub")
+    if case.assigned_to is None or not agent_sub:
+        raise HTTPException(status_code=403, detail="This case is not assigned to you")
+    if case.assigned_to != uuid.UUID(agent_sub):
+        raise HTTPException(status_code=403, detail="This case is handled by another agent")
+
+
 async def _get_case(case_id: str, db: AsyncSession) -> Case:
     try:
         case_uuid = uuid.UUID(case_id)
@@ -179,12 +189,11 @@ async def create_replacement_request(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_agent),
 ):
-    _ = current_user
-
     if payload.status not in ACTIVE_STATUSES:
         raise HTTPException(status_code=422, detail="Invalid replacement request status")
 
     case = await _get_case(payload.case_id, db)
+    _enforce_escalation_assignment(case, current_user)
 
     if case.order_id != payload.order_id:
         raise HTTPException(status_code=422, detail="order_id does not match case")
@@ -260,8 +269,8 @@ async def list_case_replacement_requests(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_agent),
 ):
-    _ = current_user
     case = await _get_case(case_id, db)
+    _enforce_escalation_assignment(case, current_user)
     rows = (
         await db.execute(
             select(ReplacementRequest)
@@ -278,7 +287,6 @@ async def get_replacement_request(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_agent),
 ):
-    _ = current_user
     try:
         request_uuid = uuid.UUID(replacement_request_id)
     except ValueError as exc:
@@ -287,6 +295,8 @@ async def get_replacement_request(
     req = (await db.execute(select(ReplacementRequest).where(ReplacementRequest.id == request_uuid))).scalar_one_or_none()
     if req is None:
         raise HTTPException(status_code=404, detail="Replacement request not found")
+    case = await _get_case(str(req.case_id), db)
+    _enforce_escalation_assignment(case, current_user)
     return _serialize(req)
 
 
@@ -297,8 +307,6 @@ async def patch_replacement_request(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_agent),
 ):
-    _ = current_user
-
     try:
         request_uuid = uuid.UUID(replacement_request_id)
     except ValueError as exc:
@@ -310,6 +318,8 @@ async def patch_replacement_request(
     req = (await db.execute(select(ReplacementRequest).where(ReplacementRequest.id == request_uuid))).scalar_one_or_none()
     if req is None:
         raise HTTPException(status_code=404, detail="Replacement request not found")
+    case = await _get_case(str(req.case_id), db)
+    _enforce_escalation_assignment(case, current_user)
 
     allowed = VALID_TRANSITIONS.get(req.status, set())
     if payload.status not in allowed:
@@ -343,6 +353,6 @@ async def patch_replacement_request(
     else:
         msg = "Your replacement request was cancelled."
 
-    await post_message(db, req.case_id, msg, sender_type="system")
+    await post_message(db, case.id, msg, sender_type="system")
 
     return _serialize(req)

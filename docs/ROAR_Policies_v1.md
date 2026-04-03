@@ -1,9 +1,18 @@
+# ROAR Engine — Policy Records Specification
+
+**Changelog**
+
+  **Version**   **Date**     **Change**                                      **Section(s)**
+  v1.0          March 2026   Initial release                                 All
+
+  v1.1          April 2026   Version alignment and DB seed path correction   §1, §7
+
 ## 1. Document Overview
 This document defines the complete set of policy records seeded into ROAR Engine's database. These are the actual content records stored in the policies table and displayed on the /policies page. Each record has a unique slug used for deep-linking from rejection reasons and referenced by the Triage Agent during rule evaluation.
 
 These policies are written for a generic Thai retail e-commerce and online delivery context. They apply to any retail enterprise operating an online ordering and delivery channel. They are not specific to any single brand.
 
-| These records are seeded via supabase/seed/001_policies.sql (see §7 for the SQL).                                  |
+| These records are seeded via db/seed/001_policies.sql (see §7 for the SQL).                                         |
 |                                                                                                                    |
 | Slugs are permanent --- never change a slug after seeding. All rejection reasons and case reports reference slugs. |
 |                                                                                                                    |
@@ -14,7 +23,7 @@ These policies are written for a generic Thai retail e-commerce and online deliv
   **Field**             **Value**
   Document Type         Policy Records Specification
 
-  Version               1.0
+  Version               1.1
 
   Total Records         25 policies across 5 categories
 
@@ -22,7 +31,7 @@ These policies are written for a generic Thai retail e-commerce and online deliv
 
   Context               Generic Thai retail e-commerce and online delivery
 
-  Seeded Via            seed/001_policies.sql
+  Seeded Via            db/seed/001_policies.sql
 
   Referenced By         Triage Agent (WF3), Rejection Modal (frontend), Case Report Agent (WF6)
 
@@ -473,7 +482,7 @@ Service Level Agreement standards for ROAR Engine's dispute resolution system. T
 ## 7. SQL Seed Script
 The following SQL seeds all 25 policy records into the policies table. Run this as part of the database initialization sequence before the application is used or demoed.
 
-| File location: seed/001_policies.sql                                                   |
+| File location: db/seed/001_policies.sql                                                |
 |                                                                                        |
 | Run after: 002_reports_policies.sql (which creates the policies table)                 |
 |                                                                                        |

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 
 import { AppShell } from '@/components/layout/AppShell';
+import { ApproverRequestActionsPanel } from '@/components/dashboard/ApproverRequestActionsPanel';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { ConversationClosePanel } from '@/components/chat/ConversationClosePanel';
 import { api } from '@/lib/api';
@@ -25,7 +26,8 @@ export default function ApproverChatPage({ params }: { params: { caseId: string 
         <div className="flex-1 overflow-hidden">
           <ChatWindow caseId={caseId} mode="agent" />
         </div>
-        <div className="w-[360px] max-xl:hidden">
+        <div className="w-[360px] space-y-4 max-xl:hidden">
+          <ApproverRequestActionsPanel caseId={caseId} />
           <ConversationClosePanel onConfirm={close} />
         </div>
       </div>

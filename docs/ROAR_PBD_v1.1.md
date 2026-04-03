@@ -1,7 +1,11 @@
+# ROAR Engine — Product Breakdown Document
+
 **Changelog**
 
   **Version**   **Date**     **Change**                                                                                        **Section(s)**
   v1.0          March 2026   Initial release                                                                                   All
+
+  v1.2          April 2026   Added replacement_requests API and DB schema                  §3.1, §4.5
 
   v1.1          March 2026   Database stack: Supabase replaced with PostgreSQL on Railway throughout                           §2, §3, §4, §10, §11
 
@@ -21,9 +25,9 @@ This Product Breakdown Document (PBD) is the technical companion to the ROAR Eng
   **Field**             **Value**
   Document Type         Product Breakdown Document (PBD)
 
-  Version               1.1
+  Version               1.2
 
-  Companion Documents   PRD v1.2, Architecture v1.1, n8n Spec v2.0, BRL v1.1, Policies v1.0, Resolution Paths v1.0
+  Companion Documents   PRD v1.3, Architecture v1.1, n8n Spec v2.1, BRL v1.2, Policies v1.1, Resolution Paths v1.1
 
   Stack                 Next.js 14 · FastAPI · n8n + LangChain · GPT-4o-mini · PostgreSQL on Railway
 
@@ -187,6 +191,37 @@ All tables reside in PostgreSQL on Railway. Managed via SQLAlchemy async ORM. Mi
   status          text          NOT NULL, CHECK IN ('pending','approved','rejected')   Status
 
   created_at      timestamptz   DEFAULT now()                                                Creation timestamp
+
+**replacement_requests**
+
+  **Column**          **Type**        **Constraints**                                              **Description**
+  id                  uuid            PK                                                           Primary key
+
+  case_id             uuid            FK cases.id, NOT NULL                                        Parent case
+
+  order_id            text            NOT NULL                                                     Order reference
+
+  status              text            NOT NULL, DEFAULT 'pending'                                  Status of request
+
+  requested_at        timestamptz     DEFAULT now()                                                Creation timestamp
+
+  approved_at         timestamptz     NULLABLE                                                     Approval timestamp
+
+  executed_at         timestamptz     NULLABLE                                                     Execution timestamp
+
+  closed_at           timestamptz     NULLABLE                                                     Closed timestamp
+  
+  reason              text            NOT NULL                                                     Replacement reason
+
+  replacement_items   jsonb           NOT NULL, DEFAULT '[]'                                       Items replaced
+
+  eligible_amount     numeric(10,2)   NULLABLE                                                     Amount eligible
+
+  metadata            jsonb           NULLABLE                                                     Optional metadata
+
+  created_at          timestamptz     DEFAULT now()                                                Creation timestamp
+
+  updated_at          timestamptz     DEFAULT now()                                                Update timestamp
 
 **case_reports**
 
@@ -382,6 +417,36 @@ These endpoints are called by n8n WF2 (Data Retrieval Agent) instead of querying
 | --- | --- |
 | approver/escalation JWT | { return_requests: [ ... ] } (escalation agents only see records for their assigned cases) |
 
+**GET /cases/:id/replacement_requests**
+
+| Auth | Response |
+| --- | --- |
+| approver/escalation JWT | { replacement_requests: [ ... ] } |
+
+**POST /replacement-requests**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| agent JWT (WF5-safe) | { case_id, order_id, reason, replacement_items[], eligible_amount?, metadata?, status } | 201: replacement_request created + persisted chat notification |
+
+**GET /replacement-requests**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| approver/escalation JWT | query filter parameters | 200: { replacement_requests: [ ... ] } |
+
+**GET /replacement-requests/:id**
+
+| Auth | Response |
+| --- | --- |
+| approver/escalation JWT | 200: full replacement_request object |
+
+**PATCH /replacement-requests/:id**
+
+| Auth | Request | Response |
+| --- | --- | --- |
+| approver/escalation JWT | { status, reason?, metadata? } | 200: patched replacement_request object + persisted chat system notification |
+
 **POST /refund_requests**
 
 | Auth | Request | Response |
@@ -435,14 +500,14 @@ These endpoints are called by n8n WF2 (Data Retrieval Agent) instead of querying
 
 **5. n8n Workflow Designs**
 
-| Full node-by-node workflow specs, tool definitions, and prompt library: see n8n Spec v2.0.                                                  |
+| Full node-by-node workflow specs, tool definitions, and prompt library: see n8n Spec v2.1.                                                  |
 |                                                                                                                                             |
 | Key change from v1.0: WF2 Data Retrieval Agent now calls FastAPI /internal/sources/\* endpoints instead of querying Supabase REST directly. |
 |                                                                                                                                             |
-| All other workflow logic unchanged from n8n Spec v2.0.                                                                                      |
+| All other workflow logic unchanged from n8n Spec v2.1. See n8n Spec v2.1 §1 for the delta summary.                                        |
 
 ### 5.1 WF2 Data Retrieval --- Updated Node Map
-Only WF2 changes from n8n Spec v2.0. Nodes N3--N9 now call FastAPI internal endpoints instead of Supabase REST. All other nodes unchanged.
+Only WF2 changes from n8n Spec v2.1. Nodes N3--N9 now call FastAPI internal endpoints instead of Supabase REST. All other nodes unchanged. Refer to n8n Spec v2.1 for the full updated spec.
 
   **\#**   **Node Name**               **Node Type**   **Configuration**                                                                                                                                  **Output**
   N1       Webhook Trigger             Webhook         Path: bundle-ready. Method: POST. Auth: ROAR FastAPI.                                                                                              { case_id, dispute_type, order_id }
@@ -470,7 +535,7 @@ Only WF2 changes from n8n Spec v2.0. Nodes N3--N9 now call FastAPI internal endp
 | The FastAPI internal endpoints handle the multi-table joins internally --- WF2 nodes are simpler.                                                                                                             |
 
 ## 6. AI Agent Prompt Templates
-All six system prompts unchanged from n8n Spec v2.0 §12. See n8n Spec v2.0 §12.1--12.6 for copy-paste versions.
+All six system prompts unchanged from n8n Spec v2.0 §12. See n8n Spec v2.1 §12.1--12.6 for copy-paste versions.
 
 ## 7. Frontend Component Inventory
 All components unchanged from PBD v1.0. See PBD v1.0 §7 for the complete component inventory. No component changes result from the database stack change.

@@ -288,6 +288,19 @@ class EnhancedTriageService:
 
         # 6/7/8) Refund lane and delivery refund auto-rules.
         if dispute_type == "delivery":
+            # Plain non-receipt cases can auto-refund when payment is confirmed and
+            # tracking does not show delivery or a lost-parcel hard stop. This aligns
+            # the seeded delivery refund path with the manual E2E guide expectations.
+            if subtype == "non_receipt" and delivered_event is None and lost_event is None:
+                return {
+                    "triage_decision": "autonomous",
+                    "resolution_type": "refund",
+                    "reason": "Non-receipt with no delivery confirmation - autonomous refund approved",
+                    "eligible_amount": total_amount,
+                    "requires_human_review": False,
+                    "case_id": case_id,
+                }
+
             if exception_event and delivered_event is None:
                 return {
                     "triage_decision": "autonomous",

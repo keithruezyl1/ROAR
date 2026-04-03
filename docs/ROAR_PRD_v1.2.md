@@ -1,9 +1,13 @@
+# ROAR Engine — Product Requirements Document
+
 **Changelog**
 
   **Version**   **Date**     **Change**                                                                                                          **Section(s)**
   v1.0          March 2026   Initial release                                                                                                     All
 
   v1.1          March 2026   Corrected §9 to 6 workflows. Added §9.1 architecture classification. Added §15 Business Rules Reference.            §9, §9.1, §15
+
+  v1.3          April 2026   Review and version alignment completed                                                                              All
 
   v1.2          March 2026   Retail context updated: removed convenience store framing, replaced with Thai retail e-commerce / online delivery   §2, §14
 
@@ -19,9 +23,9 @@
 
   Document Type         Product Requirements Document (PRD)
 
-  Version               1.2
+  Version               1.3
 
-  Date                  March 2026
+  Date                  April 2026
 
   Context               Gosoft Retail Hackathon 2026
 
@@ -29,7 +33,7 @@
 
   Status                Approved for development
 
-  Companion Docs        PBD v1.0, Architecture v1.1, n8n Spec v2.0, Design Guidelines v1.0, BRL v1.1, Policies v1.0, Resolution Paths v1.0
+  Companion Docs        PBD v1.2, Architecture v1.1, n8n Spec v2.1, Design Guidelines v1.0, BRL v1.2, Policies v1.1, Resolution Paths v1.1
 
 ## 2. Executive Summary
 ROAR Engine is a SaaS AI orchestration platform that integrates with existing retail backend systems to autonomously triage, investigate, and resolve customer disputes. It is purpose-built to reduce the volume of repetitive, time-consuming tasks performed by customer care agents by delegating the intake-to-resolution pipeline to a multi-agent AI system.
@@ -205,7 +209,7 @@ ROAR Engine is a single application with role-based routing. All users authentic
 
 **F2 --- AI Orchestration**
 
--   Six agents in supervised pipeline via n8n (see §9 and n8n Spec v2.0)
+-   Six agents in supervised pipeline via n8n (see §9 and n8n Spec v2.1)
 
 -   Data Retrieval: OMS + Payment for refund; OMS + Logistics + Inventory for delivery
 
@@ -302,7 +306,7 @@ ROAR Engine employs six specialized AI agents in a supervised agentic pipeline. 
 
 | 6 workflows, one per agent. Summarization Agent (Agent 5) is standalone WF4 (corrected from v1.0 which stated 5 workflows). |
 |                                                                                                                             |
-| See n8n Spec v2.0 for full workflow node specs, tool definitions, and prompt library.                                       |
+| See n8n Spec v2.1 for full workflow node specs, tool definitions, and prompt library.                                       |
 
   **Agent**                  **Responsibility**                                                  **Trigger**                    **Output**
   1\. Intake Agent           Chatbot conversation. Follow-up questions. Intent classification.   Customer message               Validated dispute context JSON

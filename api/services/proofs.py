@@ -5,6 +5,7 @@ import hashlib
 import imghdr
 import logging
 import os
+import re
 import struct
 from dataclasses import dataclass
 from typing import Any
@@ -216,6 +217,12 @@ def build_proof_analysis_prompt(
         f"Customer claim: {customer_claim or 'unknown'}\n"
         f"Ordered items: {ordered_items or []}\n"
         f"Image count: {image_count}\n\n"
+        "For not_as_described disputes, compare the visible product against the ordered items and record any visible "
+        "brand, product-line, variant, roast, flavor, size, weight, packaging, or quantity mismatch in "
+        "not_as_described_signals.differences.\n"
+        "If the visible item appears to be the same general item category but with clearly different brand, variant, "
+        "or size/weight than ordered, set not_as_described_signals.detected to true.\n"
+        "If the image shows a completely different product than ordered, use wrong_item_signals.detected = true.\n\n"
         "Return only valid JSON with this schema:\n"
         "{"
         '"proof_present": boolean,'
@@ -233,6 +240,169 @@ def build_proof_analysis_prompt(
         "}\n\n"
         "Only describe factual observations visible in the images. Do not decide whether the case is valid."
     )
+
+
+def _normalize_text(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def _extract_weight_tokens(value: Any) -> set[str]:
+    text = _normalize_text(value)
+    tokens: set[str] = set()
+    for match in re.finditer(r"(\d+(?:\.\d+)?)\s*(kg|g|gram|grams)", text):
+        amount = match.group(1)
+        unit = match.group(2)
+        if unit in {"gram", "grams"}:
+            unit = "g"
+        elif unit == "kg":
+            unit = "kg"
+        tokens.add(f"{amount}{unit}")
+    return tokens
+
+
+def _extract_order_item_texts(ordered_items: list[dict[str, Any]] | None) -> list[str]:
+    if not isinstance(ordered_items, list):
+        return []
+    texts: list[str] = []
+    for item in ordered_items:
+        if not isinstance(item, dict):
+            continue
+        for key in ("product_name", "item_name", "name", "title", "sku", "item_id"):
+            value = item.get(key)
+            if value:
+                texts.append(str(value))
+    return texts
+
+
+COMPARISON_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "bag",
+    "box",
+    "can",
+    "canister",
+    "coffee",
+    "container",
+    "dark",
+    "flavor",
+    "g",
+    "gold",
+    "grams",
+    "ground",
+    "in",
+    "instant",
+    "medium",
+    "of",
+    "original",
+    "premium",
+    "product",
+    "roast",
+    "shown",
+    "the",
+    "whole",
+}
+
+
+def _extract_comparison_tokens(value: Any) -> set[str]:
+    return {
+        token
+        for token in _normalize_text(value).split()
+        if token and token not in COMPARISON_STOPWORDS and not token.isdigit()
+    }
+
+
+def _postprocess_proof_analysis(
+    data: dict[str, Any],
+    *,
+    dispute_subtype: str | None,
+    ordered_items: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    subtype = str(dispute_subtype or "").strip().lower()
+    if subtype not in {"not_as_described", "wrong_item"}:
+        return data
+
+    ordered_texts = _extract_order_item_texts(ordered_items)
+    if not ordered_texts:
+        return data
+
+    ordered_normalized = " ".join(_normalize_text(text) for text in ordered_texts if text)
+    ordered_weight_tokens = set().union(*(_extract_weight_tokens(text) for text in ordered_texts))
+
+    visible_texts = [
+        *[str(v) for v in data.get("items_visible", []) if v],
+        *[str(v) for v in data.get("observations", []) if v],
+    ]
+    visible_normalized = " ".join(_normalize_text(text) for text in visible_texts if text)
+    visible_weight_tokens = set().union(*(_extract_weight_tokens(text) for text in visible_texts))
+    ordered_tokens = set().union(*(_extract_comparison_tokens(text) for text in ordered_texts))
+    visible_tokens = set().union(*(_extract_comparison_tokens(text) for text in visible_texts))
+    shared_tokens = ordered_tokens.intersection(visible_tokens)
+    ordered_unique = ordered_tokens.difference(visible_tokens)
+    visible_unique = visible_tokens.difference(ordered_tokens)
+
+    def _ensure_difference_list(key: str) -> list[str]:
+        differences = data.setdefault(key, {}).setdefault("differences", [])
+        if not isinstance(differences, list):
+            differences = []
+            data[key]["differences"] = differences
+        return differences
+
+    not_as_described_differences = _ensure_difference_list("not_as_described_signals")
+    wrong_item_differences = _ensure_difference_list("wrong_item_signals")
+
+    def add_difference(target: list[str], message: str) -> None:
+        if message not in target:
+            target.append(message)
+
+    def add_shared_difference(message: str) -> None:
+        add_difference(not_as_described_differences, message)
+        if subtype == "wrong_item":
+            add_difference(wrong_item_differences, message)
+
+    ordered_has_nescafe = "nescafe" in ordered_normalized
+    visible_has_nescafe = "nescafe" in visible_normalized
+    ordered_has_mccafe = "mccafe" in ordered_normalized or "mc cafe" in ordered_normalized
+    visible_has_mccafe = "mccafe" in visible_normalized or "mc cafe" in visible_normalized
+
+    if ordered_has_nescafe and visible_has_mccafe:
+        add_shared_difference("Visible brand appears to be McCafe while the ordered item is Nescafe.")
+    if ordered_has_mccafe and visible_has_nescafe:
+        add_shared_difference("Visible brand appears to be Nescafe while the ordered item is McCafe.")
+
+    if ordered_weight_tokens and visible_weight_tokens and ordered_weight_tokens != visible_weight_tokens:
+        add_shared_difference(
+            "Visible weight/size appears different from the ordered item "
+            f"({', '.join(sorted(visible_weight_tokens))} visible vs {', '.join(sorted(ordered_weight_tokens))} ordered)."
+        )
+
+    if "whole beans" in visible_normalized and "whole beans" not in ordered_normalized:
+        add_shared_difference("Visible product appears to be whole beans, which differs from the ordered item description.")
+    if "dark roast" in visible_normalized and "dark roast" not in ordered_normalized:
+        add_shared_difference("Visible roast/variant appears different from the ordered item description.")
+    if "medium dark roast" in visible_normalized and "medium dark roast" not in ordered_normalized:
+        add_shared_difference("Visible roast/variant appears different from the ordered item description.")
+
+    if ordered_unique and visible_unique and len(shared_tokens) <= 1:
+        ordered_summary = ", ".join(sorted(ordered_unique)[:3]) or "ordered descriptors"
+        visible_summary = ", ".join(sorted(visible_unique)[:3]) or "visible descriptors"
+        add_shared_difference(
+            f"Visible product descriptors differ from the ordered item ({visible_summary} visible vs {ordered_summary} ordered)."
+        )
+
+    if subtype == "not_as_described" and not_as_described_differences:
+        data["not_as_described_signals"]["detected"] = True
+
+    if subtype == "wrong_item":
+        strong_wrong_item_signal = (
+            (ordered_has_nescafe and visible_has_mccafe)
+            or (ordered_has_mccafe and visible_has_nescafe)
+            or (ordered_unique and visible_unique and len(shared_tokens) == 0)
+        )
+        if strong_wrong_item_signal and wrong_item_differences:
+            data["wrong_item_signals"]["detected"] = True
+
+    return data
 
 
 async def analyze_proof_images(
@@ -302,7 +472,11 @@ async def analyze_proof_images(
             data = json.loads(raw)
             data.setdefault("analysis_version", "v1")
             data.setdefault("model", PROOF_ANALYSIS_MODEL)
-            return data
+            return _postprocess_proof_analysis(
+                data,
+                dispute_subtype=dispute_subtype,
+                ordered_items=ordered_items,
+            )
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             if attempt >= max_retries:

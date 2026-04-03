@@ -1,3 +1,12 @@
+# ROAR Engine — Resolution Paths
+
+**Changelog**
+
+  **Version**   **Date**     **Change**                                                                    **Section(s)**
+  v1.0          March 2026   Initial release                                                               All
+
+  v1.1          April 2026   Added cross-references for awaiting_customer_proof & decision states          §1.1
+
 ## 1. Document Overview
 This document is the definitive reference for every possible scenario ROAR Engine can encounter, and the exact resolution path each scenario follows. It defines the complete mapping of case conditions to outcomes --- from fully autonomous resolution to human escalation --- covering all dispute types, data states, edge cases, and failure modes.
 
@@ -6,7 +15,7 @@ This document is the implementation contract for the Triage Agent (WF3). Every s
   **Field**             **Value**
   Document Type         Resolution Paths Document
 
-  Version               1.0
+  Version               1.1
 
   Dispute Scope         Refund disputes and delivery disputes
 
@@ -21,6 +30,8 @@ This document is the implementation contract for the Triage Agent (WF3). Every s
   AUTONOMOUS         Green            All triage rules pass. AI generates resolution plan. Approver reviews and executes.   AI (with agent approval gate)
 
   ESCALATION         Amber            One or more triage rules fail. Human agent takes over the live chat.                  Human escalation agent
+
+  CUSTOMER ACTION    Cyan             System pauses triage to request proof (`awaiting_customer_proof`) or decision (`awaiting_customer_decision`).  Customer
 
   POST-REJECTION     Red              Approver rejects autonomous resolution plan. Approver joins live chat.                Approver (human)
 
@@ -799,7 +810,7 @@ Scenarios triggered by AI pipeline failures, data anomalies, or unexpected syste
 |                                                                                                                                                          |
 | ✓ WF2 Data Retrieval returns null for one or more data sources                                                                                           |
 |                                                                                                                                                          |
-| ✓ OR Supabase query returns HTTP 5xx error                                                                                                               |
+| ✓ OR FastAPI /internal/sources/* endpoint returns HTTP 5xx error                                                                                                   |
 |                                                                                                                                                          |
 | **Outcome:**                                                                                                                                             |
 |                                                                                                                                                          |

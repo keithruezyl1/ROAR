@@ -15,6 +15,14 @@ import { api } from '@/lib/api';
 import { deriveCaseContextFromCase, getCaseContext, saveCaseContext } from '@/lib/intakeContext';
 import type { Case, DisputeType, IntakeReason } from '@/types';
 
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className ?? 'h-4 w-4'} aria-hidden>
+      <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,6 +39,15 @@ function ChatPageContent() {
   const [endOpen, setEndOpen] = React.useState(false);
   const [ending, setEnding] = React.useState(false);
   const [endError, setEndError] = React.useState<string | null>(null);
+  const [logoutOpen, setLogoutOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+
+  const fullName = React.useMemo(() => {
+    const payload = decodeToken();
+    return payload?.full_name ?? 'Customer';
+  }, []);
 
   React.useEffect(() => {
     setMounted(true);
@@ -48,6 +65,18 @@ function ChatPageContent() {
       return;
     }
   }, [router]);
+
+  React.useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
 
   const loadCase = React.useCallback(async (caseId: string) => {
     setLoadingCase(true);
@@ -141,22 +170,32 @@ function ChatPageContent() {
 
           <div className="flex items-center gap-3">
             <DarkModeToggle />
-            {caseDetail && caseDetail.status !== 'closed' ? (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  setEndError(null);
-                  setEndOpen(true);
-                }}
-                disabled={ending}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                className="inline-flex h-9 items-center gap-2 rounded-pill border border-border-default bg-bg-elevated px-2 pr-3 text-[13px] font-medium text-text-secondary transition-colors hover:bg-bg-sunken"
               >
-                End conversation
-              </Button>
-            ) : null}
-            <Button variant="ghost" size="sm" onClick={logout}>
-              Logout
-            </Button>
+                <Image src="/customerpfp.jpg" alt="Customer profile" width={22} height={22} className="h-[22px] w-[22px] rounded-pill object-cover" />
+                <span>{fullName}</span>
+                <ChevronDownIcon />
+              </button>
+
+              {menuOpen ? (
+                <div className="absolute right-0 z-30 mt-2 w-[160px] rounded-btn border border-border-default bg-bg-elevated p-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setLogoutOpen(true);
+                    }}
+                    className="w-full rounded-btn px-3 py-2 text-left text-[13px] font-medium text-text-secondary transition-colors hover:bg-bg-sunken hover:text-text-primary"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -207,6 +246,23 @@ function ChatPageContent() {
           </div>
         ) : null}
 
+        {caseDetail && caseDetail.status !== 'closed' ? (
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[70]">
+            <Button
+              variant="danger"
+              size="sm"
+              className="pointer-events-auto shadow-[0_12px_28px_rgba(0,0,0,0.22)] hover:bg-danger hover:text-text-inverse active:bg-danger"
+              onClick={() => {
+                setEndError(null);
+                setEndOpen(true);
+              }}
+              disabled={ending}
+            >
+              End conversation
+            </Button>
+          </div>
+        ) : null}
+
         <Modal
           open={endOpen}
           onClose={() => {
@@ -225,6 +281,26 @@ function ChatPageContent() {
               </Button>
               <Button variant="danger" loading={ending} onClick={() => void endConversation()} disabled={ending}>
                 End conversation
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          open={logoutOpen}
+          onClose={() => setLogoutOpen(false)}
+          title="Log out now?"
+        >
+          <div className="flex flex-col gap-5">
+            <p className="text-[14px] text-text-secondary">
+              You will be signed out of ROAR Engine. You can log back in any time.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setLogoutOpen(false)}>
+                Go back
+              </Button>
+              <Button variant="primary" onClick={logout}>
+                Yes, log out
               </Button>
             </div>
           </div>

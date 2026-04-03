@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.auth.middleware import require_agent, require_escalation
+from api.auth.middleware import require_agent, require_approver
 from api.db.database import get_db
 from api.db.models import Case, ChatMessage, ReturnRequest
 from api.services.escalation_messages import TEMPLATES, post_message
@@ -28,6 +28,22 @@ class ReturnRequestCreate(BaseModel):
 
 class ReturnRequestListResponse(BaseModel):
     return_requests: list[dict]
+
+
+class ReturnApprovalQueueItem(BaseModel):
+    id: str
+    case_id: str
+    case_reference_number: str
+    case_status: str
+    order_id: str
+    item_ids: list[str]
+    return_reason: str
+    status: str
+    created_at: datetime
+
+
+class ReturnApprovalQueueResponse(BaseModel):
+    return_requests: list[ReturnApprovalQueueItem]
 
 
 class ReturnStatusUpdateRequest(BaseModel):
@@ -57,6 +73,42 @@ def _serialize_record(record: ReturnRequest) -> dict:
         "status": record.status,
         "item_ids": record.item_ids,
         "return_reason": record.return_reason,
+    }
+
+
+@router.get("/return_requests", response_model=ReturnApprovalQueueResponse)
+async def list_all_return_requests(
+    status: str = Query(default="pending"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_approver),
+):
+    _ = current_user
+    if status not in ("pending", "approved", "rejected"):
+        raise HTTPException(status_code=422, detail="Invalid return request status")
+
+    query = (
+        select(ReturnRequest, Case)
+        .join(Case, Case.id == ReturnRequest.case_id)
+        .where(ReturnRequest.status == status)
+        .order_by(ReturnRequest.created_at.desc())
+    )
+    rows = (await db.execute(query)).all()
+
+    return {
+        "return_requests": [
+            ReturnApprovalQueueItem(
+                id=str(rr.id),
+                case_id=str(case.id),
+                case_reference_number=case.reference_number,
+                case_status=case.status,
+                order_id=rr.order_id,
+                item_ids=rr.item_ids,
+                return_reason=rr.return_reason,
+                status=rr.status,
+                created_at=rr.created_at,
+            )
+            for rr, case in rows
+        ]
     }
 
 
@@ -124,7 +176,7 @@ async def update_return_request_status(
     return_request_id: str,
     payload: ReturnStatusUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_escalation),
+    current_user: dict = Depends(require_agent),
 ):
     try:
         return_uuid = uuid.UUID(return_request_id)
@@ -142,9 +194,10 @@ async def update_return_request_status(
         raise HTTPException(status_code=404, detail="Return request not found")
 
     case = await _get_case(str(rr.case_id), db)
-    agent_uuid = uuid.UUID(current_user["sub"])
-    if case.assigned_to is None or case.assigned_to != agent_uuid:
-        raise HTTPException(status_code=403, detail="This case is not assigned to you")
+    if current_user.get("role") == "escalation":
+        agent_uuid = uuid.UUID(current_user["sub"])
+        if case.assigned_to is None or case.assigned_to != agent_uuid:
+            raise HTTPException(status_code=403, detail="This case is not assigned to you")
 
     if rr.status != "pending":
         raise HTTPException(status_code=409, detail="Return request is not in pending status")
@@ -164,4 +217,3 @@ async def update_return_request_status(
         )
 
     return _serialize_record(rr)
-

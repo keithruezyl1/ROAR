@@ -1,7 +1,11 @@
+# ROAR Engine — System Architecture
+
 **Changelog**
 
   **Version**   **Date**     **Change**                                                                                        **Section(s)**
   v1.0          March 2026   Initial release                                                                                   All
+
+  v1.2          April 2026   Review and version alignment completed                                                            All
 
   v1.1          March 2026   Data layer: Supabase replaced with PostgreSQL + Railway + FastAPI JWT                             §2 Layer 4, §3, §5, §6, §7, §8
 

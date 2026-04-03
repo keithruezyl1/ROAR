@@ -123,6 +123,53 @@ def _proof_asset_summary(upload: CaseProofUpload, case_id: str) -> dict[str, Any
     }
 
 
+async def _load_order_items_for_proof_analysis(case: Case, db: AsyncSession) -> list[dict[str, Any]]:
+    ordered_items: list[dict[str, Any]] = []
+
+    if isinstance(case.information_bundle, dict):
+        bundle = case.information_bundle
+        items = bundle.get("order_items_detail")
+        if not isinstance(items, list) or not items:
+            items = bundle.get("order_items")
+        if isinstance(items, list):
+            ordered_items = [item for item in items if isinstance(item, dict)]
+
+    if ordered_items:
+        return ordered_items
+
+    rows = (
+        await db.execute(
+            text(
+                """
+                SELECT
+                    item_id,
+                    item_name,
+                    quantity,
+                    unit_price
+                FROM sim_order_items
+                WHERE order_id = :oid
+                """
+            ),
+            {"oid": case.order_id},
+        )
+    ).mappings().all()
+
+    return [dict(row) for row in rows]
+
+
+def _json_safe_debug_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    safe_items: list[dict[str, Any]] = []
+    for item in items:
+        safe_item: dict[str, Any] = {}
+        for key, value in item.items():
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                safe_item[key] = value
+            else:
+                safe_item[key] = str(value)
+        safe_items.append(safe_item)
+    return safe_items
+
+
 def _build_evidence_bundle(case: Case) -> dict[str, Any]:
     proof_assets = [
         _proof_asset_summary(upload, str(case.id))
@@ -441,12 +488,14 @@ async def get_case_order_details(
 async def list_case_proof_uploads(
     case_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_customer),
+    current_user: dict = Depends(get_current_user),
 ):
     case = await _get_case_with_proofs(db, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    if case.customer_email != current_user.get("email"):
+    if current_user.get("role") == "customer" and case.customer_email != current_user.get("email"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if current_user.get("role") not in ("customer", "approver", "escalation"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     uploads = (
@@ -464,12 +513,14 @@ async def get_case_proof_upload(
     case_id: str,
     proof_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_customer),
+    current_user: dict = Depends(get_current_user),
 ):
     case = await _get_case_with_proofs(db, case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    if case.customer_email != current_user.get("email"):
+    if current_user.get("role") == "customer" and case.customer_email != current_user.get("email"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if current_user.get("role") not in ("customer", "approver", "escalation"):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     upload_result = await db.execute(
@@ -535,12 +586,7 @@ async def create_case_proof_upload(
 
     await db.flush()
 
-    ordered_items = []
-    if isinstance(case.information_bundle, dict):
-        bundle = case.information_bundle
-        items = bundle.get("order_items_detail")
-        if isinstance(items, list):
-            ordered_items = items
+    ordered_items = await _load_order_items_for_proof_analysis(case, db)
 
     case.proof_analysis_status = "processing"
     await db.flush()
@@ -552,6 +598,9 @@ async def create_case_proof_upload(
             ordered_items=ordered_items,
             uploads=existing_uploads,
         )
+        analysis["_debug_source"] = "cases_router_after_analyze_proof_images"
+        analysis["_debug_ordered_items_count"] = len(ordered_items)
+        analysis["_debug_ordered_items"] = _json_safe_debug_items(ordered_items)
         case.proof_analysis = analysis
         case.proof_analysis_status = "completed"
     except Exception as exc:  # noqa: BLE001
@@ -707,72 +756,80 @@ async def patch_case(
     # Auto-create a pending refund_request when workflows move a refund case into awaiting_approval.
     # This ensures customers are notified immediately with a Refund Request ID, even if the workflow only
     # patches the case record and does not call /refund_requests.
+    #
+    # Use a nested transaction so bookkeeping failures cannot poison the outer session and
+    # turn an otherwise-valid case PATCH into a 500.
     try:
-        plan = case.resolution_plan or {}
-        resolution_type = None
-        if isinstance(plan, dict):
-            resolution_type = plan.get("resolution_type")
-        resolved_type = str(resolution_type or case.resolution_preference or "refund").strip().lower()
+        async with db.begin_nested():
+            plan = case.resolution_plan or {}
+            resolution_type = None
+            if isinstance(plan, dict):
+                resolution_type = plan.get("resolution_type")
+            resolved_type = str(resolution_type or case.resolution_preference or "refund").strip().lower()
 
-        if (
-            prev_status != "awaiting_approval"
-            and case.status == "awaiting_approval"
-            and case.dispute_type == "refund"
-            and resolved_type == "refund"
-        ):
-            existing_rr = await db.execute(
-                select(RefundRequest.id)
-                .where(RefundRequest.case_id == case.id)
-                .where(RefundRequest.status != "failed")
-                .limit(1)
-            )
-            if existing_rr.scalar_one_or_none() is None:
-                raw_amount = None
-                if isinstance(plan, dict):
-                    raw_amount = plan.get("amount")
-                if raw_amount is None:
-                    bundle = case.information_bundle or {}
-                    txn = bundle.get("transaction") if isinstance(bundle, dict) else None
-                    if isinstance(txn, dict):
-                        raw_amount = txn.get("amount")
-
-                amount = float(raw_amount) if raw_amount is not None else 0.0
-
-                reason = f"Workflow plan: {resolved_type or 'refund'}"
-
-                rr = RefundRequest(
-                    case_id=case.id,
-                    order_id=case.order_id,
-                    amount=amount,
-                    reason=reason,
-                    status="pending",
+            if (
+                prev_status != "awaiting_approval"
+                and case.status == "awaiting_approval"
+                and case.dispute_type == "refund"
+                and resolved_type == "refund"
+            ):
+                existing_rr = await db.execute(
+                    select(RefundRequest.id)
+                    .where(RefundRequest.case_id == case.id)
+                    .where(RefundRequest.status != "failed")
+                    .limit(1)
                 )
-                db.add(rr)
-                await db.flush()  # populate rr.id
+                if existing_rr.scalar_one_or_none() is None:
+                    raw_amount = None
+                    if isinstance(plan, dict):
+                        raw_amount = plan.get("amount")
+                    if raw_amount is None:
+                        bundle = case.information_bundle or {}
+                        txn = bundle.get("transaction") if isinstance(bundle, dict) else None
+                        if isinstance(txn, dict):
+                            raw_amount = txn.get("amount")
 
-                msg = (
-                    f"A refund request has been created for your case (Refund Request ID: {rr.id}, Amount: THB {amount:.2f}). "
-                    "Please wait while it is reviewed for approval."
-                )
-                db.add(
-                    ChatMessage(
+                    amount = float(raw_amount) if raw_amount is not None else 0.0
+
+                    reason = f"Workflow plan: {resolved_type or 'refund'}"
+
+                    rr = RefundRequest(
                         case_id=case.id,
-                        sender_type="system",
-                        sender_id=None,
-                        content=msg,
-                        metadata_=None,
+                        order_id=case.order_id,
+                        amount=amount,
+                        reason=reason,
+                        status="pending",
                     )
-                )
+                    db.add(rr)
+                    await db.flush()  # populate rr.id
+
+                    msg = (
+                        f"A refund request has been created for your case (Refund Request ID: {rr.id}, Amount: THB {amount:.2f}). "
+                        "Please wait while it is reviewed for approval."
+                    )
+                    db.add(
+                        ChatMessage(
+                            case_id=case.id,
+                            sender_type="system",
+                            sender_id=None,
+                            content=msg,
+                            metadata_=None,
+                        )
+                    )
     except Exception:
         # Never fail workflow patch calls due to notification bookkeeping.
         pass
 
-    await db.commit()
-    await db.refresh(case)
+    try:
+        await db.commit()
+        await db.refresh(case)
 
-    case = await _get_case_with_proofs(db, case_id)
-    assert case is not None
-    return _case_to_dict(case)
+        case = await _get_case_with_proofs(db, case_id)
+        assert case is not None
+        return _case_to_dict(case)
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"patch_case_failed: {type(exc).__name__}: {exc}") from exc
 
 
 @router.post("/{case_id}/approve", response_model=CaseApproveResponse)
@@ -971,6 +1028,7 @@ async def appeal_case(
 
     await db.commit()
     await db.refresh(case)
+    await trigger_workflow("/webhooks/triage-escalation", {"case_id": str(case.id)})
     case = await _get_case_with_proofs(db, case_id)
     assert case is not None
     return _case_to_dict(case)

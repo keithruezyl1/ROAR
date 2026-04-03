@@ -1,7 +1,11 @@
+# ROAR Engine — Business Rules and Logic
+
 **Changelog**
 
   **Version**   **Date**     **Change**                                                                                                                     **Section(s)**
   v1.0          March 2026   Initial release                                                                                                                All
+
+  v1.2          April 2026   Added replacement request logic, updated case statuses, fixed §6.1 header                                      §3.1, §3.2, §6.1
 
   v1.1          March 2026   Retail context updated: removed 7-Eleven convenience store framing, replaced with Thai retail e-commerce / online delivery     §2, §13
 
@@ -17,9 +21,9 @@ This document is the single authoritative source of truth for all business rules
   **Field**             **Value**
   Document Type         Business Rules and Logic Specification
 
-  Version               1.1
+  Version               1.2
 
-  Companion Docs        PRD v1.2, PBD v1.0, n8n Spec v2.0, Architecture v1.1, Design Guidelines v1.0, Policies v1.0, Resolution Paths v1.0
+  Companion Docs        PRD v1.3, PBD v1.2, n8n Spec v2.1, Architecture v1.1, Design Guidelines v1.0, Policies v1.1, Resolution Paths v1.1
 
   Dispute Scope         Refund disputes and delivery disputes (MVP)
 
@@ -56,7 +60,11 @@ Canonical values for all configurable thresholds. Change here first --- all othe
 ## 3. Case Lifecycle
 ### 3.1 Case Status Definitions
   **Status**                 **Meaning**                                                    **Set By**                      **Next Valid Statuses**
-  pending_triage             Case created. Intake Agent gathering context.                  FastAPI on case creation        pending_triage (loop), awaiting_approval, escalated_human_required
+  pending_triage             Case created. Intake Agent gathering context.                  FastAPI on case creation        pending_triage (loop), awaiting_approval, escalated_human_required, awaiting_customer_proof, awaiting_customer_decision
+
+  awaiting_customer_proof    System requires customer to provide a proof image.             WF1 or human agent              pending_triage, escalated_human_required
+
+  awaiting_customer_decision System asked customer to choose between options.               WF3 triage output               pending_triage, escalated_human_required
 
   awaiting_approval          Triage complete. Autonomous path. Resolution plan generated.   WF3 after triage → autonomous   approved_executing, rejected_human_required
 
@@ -78,6 +86,14 @@ Canonical values for all configurable thresholds. Change here first --- all othe
 
 ### 3.2 Valid Status Transition Map
 | pending_triage → pending_triage (multi-turn chat loop)                 |
+|                                                                        |
+| pending_triage → awaiting_customer_proof (needs proof upload)          |
+|                                                                        |
+| awaiting_customer_proof → pending_triage (proof uploaded)              |
+|                                                                        |
+| pending_triage → awaiting_customer_decision (choice required)         |
+|                                                                        |
+| awaiting_customer_decision → pending_triage (decision made)            |
 |                                                                        |
 | pending_triage → awaiting_approval (autonomous triage complete)        |
 |                                                                        |
@@ -239,6 +255,7 @@ Complete authoritative triage rule set. ALL rules for a dispute type must pass f
   ESC-012          Triage JSON unparseable or routing_decision missing              AI output failure
 
 ## 6. Approval Workflow Rules
+### 6.1 Approval Constraints
 | **BR-APR-001 Approver Identity Captured at Click Time**                                                      |
 |                                                                                                              |
 | Type: Approval                                                                                               |

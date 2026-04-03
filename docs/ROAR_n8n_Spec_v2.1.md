@@ -1,7 +1,11 @@
+# ROAR Engine — n8n Orchestration Specification
+
 **Changelog**
 
   **Version**   **Date**     **Change**                                                                                             **Section(s)**
   v2.0          March 2026   Added Section 14 (Tool/Function Call Reference), Section 16 (MCP guidance). Corrected 5→6 workflows.   All
+
+  v2.2          April 2026   Version alignment and companion doc updates                                                            All
 
   v2.1          March 2026   WF2 data access updated: Supabase REST queries replaced with FastAPI /internal/sources/\* endpoints    §6, §14.2, §14.3
 
@@ -17,9 +21,9 @@ This document is the complete hands-on implementation reference for ROAR Engine'
   **Field**             **Value**
   Document Type         n8n Implementation Specification
 
-  Version               2.1 (supersedes v2.0)
+  Version               2.2 (supersedes v2.1)
 
-  Companion Docs        PRD v1.2, PBD v1.1, Architecture v1.1, BRL v1.1
+  Companion Docs        PRD v1.3, PBD v1.2, Architecture v1.2, BRL v1.2
 
   n8n Version           n8n \>= 1.30
 

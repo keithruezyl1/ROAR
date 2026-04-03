@@ -24,6 +24,7 @@ export function ProofUploadPanel({
   title = 'Upload proof',
   description = 'Upload up to 2 images to support your case.',
   showUploadAction = true,
+  containerClassName,
 }: {
   selectedFiles: File[];
   uploads?: CaseProofUpload[];
@@ -36,12 +37,13 @@ export function ProofUploadPanel({
   title?: string;
   description?: string;
   showUploadAction?: boolean;
+  containerClassName?: string;
 }) {
   const totalCount = (uploads?.length ?? 0) + selectedFiles.length;
   const canSelectMore = totalCount < BUSINESS_RULES.MAX_PROOF_UPLOADS;
 
   return (
-    <div className="rounded-card border border-border-default bg-bg-elevated p-4">
+    <div className={`rounded-[18px_8px_18px_18px] border border-border-default bg-bg-elevated p-4 shadow-[0_1px_0_rgba(0,0,0,0.06)] ${containerClassName ?? ''}`}>
       <div className="text-[14px] font-semibold text-text-primary">{title}</div>
       <div className="mt-1 text-[13px] text-text-secondary">{description}</div>
 

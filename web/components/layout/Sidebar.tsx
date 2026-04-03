@@ -22,16 +22,6 @@ function DashboardIcon({ className }: { className?: string }) {
   );
 }
 
-function HistoryIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4 12a8 8 0 1 0 2.34-5.66" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M4 4v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 8v4l2.5 2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function PoliciesIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -82,8 +72,6 @@ export function Sidebar({
     role === 'approver'
       ? [
           { href: '/approver', label: 'Dashboard', icon: DashboardIcon },
-          { href: '/approver/replacements', label: 'Replacements', icon: HistoryIcon },
-          { href: '/approver/refunds', label: 'History', icon: HistoryIcon },
           { href: '/policies', label: 'Policies', icon: PoliciesIcon },
         ]
       : [

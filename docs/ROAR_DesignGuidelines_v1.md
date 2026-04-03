@@ -1,3 +1,5 @@
+# ROAR Engine — Design System Guidelines
+
 ## 1. Design System Overview
 This document defines the ROAR Engine design system --- the complete visual and interaction language for the application. It covers color tokens, typography, spacing, component specifications, dark mode rules, and motion guidelines. All UI must be implemented using these standards to ensure consistency across screens and contributors.
 
@@ -425,6 +427,10 @@ Each component has a defined set of variants, states, and token references. Impl
   rejected_human_required    \--color-danger-bg        \--color-danger       Rejected --- human required
 
   escalated_human_required   \--color-warning-bg       \--color-warning      Escalated
+
+  awaiting_customer_proof    \--color-info-bg          \--color-info         Awaiting proof
+
+  awaiting_customer_decision \--color-info-bg          \--color-info         Awaiting decision
 
   resolved                   \--color-success-bg       \--color-success      Resolved
 

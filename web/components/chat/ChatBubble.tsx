@@ -116,7 +116,9 @@ export function ChatBubble({
           <div className={clsx('px-4 py-2.5 text-[16px] leading-relaxed shadow-[0_1px_0_rgba(0,0,0,0.06)]', bubbleClass)}>
             {content}
           </div>
-          {attachments.length > 0 ? <ChatAttachmentGallery caseId={caseId} attachments={attachments} /> : null}
+          {attachments.length > 0 ? (
+            <ChatAttachmentGallery caseId={caseId} attachments={attachments} alignRight={isOwnMessage} />
+          ) : null}
 
           <div className={clsx('mt-1 flex items-center gap-2 text-[11px]', isOwnMessage ? 'justify-end' : 'justify-start')}>
             {status === 'error' ? <span className="text-danger">Message failed to send</span> : null}

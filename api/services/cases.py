@@ -27,6 +27,10 @@ VALID_TRANSITIONS: dict[str, list[str]] = {
 
 def validate_status_transition(current: str, next_status: str) -> bool:
     """Return True if the transition from current to next_status is valid."""
+    # Workflow retries and manual node re-execution can resend the current status.
+    # Treat these as valid idempotent no-op updates instead of rejecting them.
+    if current == next_status:
+        return True
     allowed = VALID_TRANSITIONS.get(current, [])
     return next_status in allowed
 
